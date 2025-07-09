@@ -1,0 +1,77 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+  Logger,
+  UseInterceptors,
+} from '@nestjs/common';
+import { EditorialService } from './editorial.service';
+import { CreateEditorialDto } from './dto/create-editorial.dto';
+import { UpdateEditorialDto } from './dto/update-editorial.dto';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ResponseMessage } from '../helpers/response-mapping/response.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { EditorialPaginationQuery, EditorialSelectTypeQuery } from './filters/editorial.filter';
+
+@ApiTags('Editorial')
+@Controller('editorials')
+export class EditorialController {
+  private readonly logger = new Logger(EditorialController.name);
+
+  constructor(private readonly editorialService: EditorialService) {}
+
+  @ApiOperation({ summary: 'Creates an editorial' })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ResponseMessage('Editorial created successfully')
+  @Post()
+  create(
+    @Body() createEditorialDto: CreateEditorialDto,
+    // @UserId() userId: string // Uncomment if you have user context
+  ) {
+    this.logger.log('inside create editorial controller');
+    return this.editorialService.create(createEditorialDto, null); // Replace null with userId if available
+  }
+
+  @ApiOperation({ summary: 'Get a list of editorials' })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @Get()
+  findAll(@Query() query: EditorialPaginationQuery) {
+    return this.editorialService.findAll(query);
+  }
+
+  @ApiOperation({ summary: 'Get an editorial by id' })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.editorialService.findOne(id);
+  }
+
+  @ApiOperation({ summary: 'Update an editorial' })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @Patch(':id')
+  update(
+    @Param('id') id: string,
+    @Body() updateEditorialDto: UpdateEditorialDto,
+    // @UserId() userId: string // Uncomment if you have user context
+  ) {
+    return this.editorialService.update(id, updateEditorialDto, null); // Replace null with userId if available
+  }
+
+  @ApiOperation({ summary: 'Delete an editorial' })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.editorialService.remove(id);
+  }
+}
