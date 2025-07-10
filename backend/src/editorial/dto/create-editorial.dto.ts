@@ -7,11 +7,6 @@ export class CreateEditorialDto {
   @IsString()
   title: string;
 
-  @ApiProperty({ example: 'Author Name' })
-  @IsNotEmpty()
-  @IsString()
-  author: string;
-
   @ApiProperty({ example: 'Opinion' })
   @IsNotEmpty()
   @IsString()

@@ -85,3 +85,10 @@ async function bootstrap() {
   await app.listen(appConfig.port || 3001)
 }
 bootstrap()
+
+// Add ConfigModule and cloudinaryConfig to AppModule imports
+// In app.module.ts:
+// imports: [
+//   ConfigModule.forRoot({ isGlobal: true, load: [cloudinaryConfig] }),
+//   ...existing modules
+// ]

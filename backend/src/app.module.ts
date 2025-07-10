@@ -30,6 +30,12 @@ import { APP_GUARD } from '@nestjs/core'
 import { CacheModule } from '@nestjs/cache-manager'
 import { createKeyv } from '@keyv/redis'
 import { CustomCacheModule } from './cache/cache.module'
+import { MagazineModule } from './magazine/magazine.module'
+import { GalleryModule } from './gallery/gallery.module'
+import { EditorialModule } from './editorial/editorial.module'
+import { FormModule } from './form/form.module'
+import { CloudinaryModule } from './cloudinary/cloudinary.module'
+import { CloudinaryConfig } from './config/cloudinary.config'
 
 @Module({
   imports: [
@@ -42,7 +48,8 @@ import { CustomCacheModule } from './cache/cache.module'
         SwaggerConfig,
         WebsiteConfig,
         BullConfig,
-        MailConfig
+        MailConfig,
+        CloudinaryConfig
       ]
     }),
 
@@ -175,6 +182,11 @@ import { CustomCacheModule } from './cache/cache.module'
     AuthModule,
     UsersModule,
     MailsModule,
+    MagazineModule,
+    GalleryModule,
+    EditorialModule,
+    FormModule,
+    CloudinaryModule,
     ...(process.env.CACHE_ENABLED === 'true' ? [
       CacheModule.registerAsync({
         useFactory: async () => {

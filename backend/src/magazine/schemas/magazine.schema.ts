@@ -27,12 +27,22 @@ export class Magazine {
   @Prop({ required: true })
   pdf: string;
 
+  @Prop({ required: true })
+  year: number;
+
+  @Prop({ required: true })
+  uploadedAt: Date;
+
+  @Prop({ required: true })
+  size: number;
+
   // Common properties for audit
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', select: false })
   createdBy: any;
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', select: false })
   updatedBy: any;
+
 }
 
 export const MagazineSchema = SchemaFactory.createForClass(Magazine);

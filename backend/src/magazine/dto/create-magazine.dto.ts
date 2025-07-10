@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, IsIn } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsIn, IsNumber, IsDateString } from 'class-validator';
 
 export class CreateMagazineDto {
   @ApiProperty({ example: 'Magazine Title' })
@@ -28,6 +28,11 @@ export class CreateMagazineDto {
   @IsString()
   description?: string;
 
+  @ApiProperty({ example: 2023 })
+  @IsNotEmpty()
+  @IsNumber()
+  year: number;
+
   @ApiPropertyOptional({ example: 'image.jpg' })
   @IsOptional()
   @IsString()
@@ -37,4 +42,14 @@ export class CreateMagazineDto {
   @IsNotEmpty()
   @IsString()
   pdf: string;
+
+  @ApiProperty({ example: '2023-10-01T00:00:00Z' })
+  @IsNotEmpty()
+  @IsDateString()
+  uploadedAt: string;
+
+  @ApiProperty({ example: 1024 })
+  @IsNotEmpty()
+  @IsNumber()
+  size: number;
 }

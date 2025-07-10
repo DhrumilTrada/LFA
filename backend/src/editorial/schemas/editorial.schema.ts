@@ -9,9 +9,6 @@ export class Editorial {
   title: string;
 
   @Prop({ required: true })
-  author: string;
-
-  @Prop({ required: true })
   category: string;
 
   @Prop({ required: true, enum: ['draft', 'published', 'archived'] })
