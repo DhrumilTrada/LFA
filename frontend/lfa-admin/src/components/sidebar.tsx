@@ -87,7 +87,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <MainNavigation />
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="border-t">
         <UserProfile />
       </SidebarFooter>
     </Sidebar>

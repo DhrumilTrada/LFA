@@ -54,6 +54,7 @@ function LoginPage() {
       console.log("Form submitted with data:", data);
 
       await new Promise((res) => setTimeout(res, 1500));
+      router.push("/admin/dashboard");
     } catch (error) {
       setErrorMessage("Login failed. Please check your credentials.");
     } finally {
