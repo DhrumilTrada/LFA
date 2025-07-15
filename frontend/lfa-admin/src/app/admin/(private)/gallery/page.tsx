@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -127,12 +127,22 @@ export default function Page() {
   const [searchTitle, setSearchTitle] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [images, setImages] = useState<ImageData[]>(mockImages);
   const [filteredImages, setFilteredImages] = useState<ImageData[]>(mockImages);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState<ImageData | null>(null);
   const [dragActive, setDragActive] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setImages(mockImages);
+      setFilteredImages(mockImages);
+      setIsLoading(false);
+    }, 1500); // Same duration as search/reset
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Upload form state
   const [uploadForm, setUploadForm] = useState({
@@ -171,15 +181,20 @@ export default function Page() {
 
       setFilteredImages(filtered);
       setIsLoading(false);
-    }, 800);
+    }, 1500);
   }, [searchTitle, selectedCategory, dateRange, images]);
 
   // Handle reset filters
   const handleReset = () => {
-    setSearchTitle("");
-    setSelectedCategory("All");
-    setDateRange(undefined);
-    setFilteredImages(images);
+    setIsLoading(true);
+
+    setTimeout(() => {
+      setSearchTitle("");
+      setSelectedCategory("All");
+      setDateRange(undefined);
+      setFilteredImages(images);
+      setIsLoading(false);
+    }, 1500);
   };
 
   // Handle drag and drop
@@ -253,6 +268,14 @@ export default function Page() {
     setIsUploadOpen(false);
   };
 
+  const isFilterActive = useCallback(() => {
+    return (
+      searchTitle.trim() !== "" ||
+      selectedCategory !== "All" ||
+      (dateRange?.from && dateRange?.to)
+    );
+  }, [searchTitle, selectedCategory, dateRange]);
+
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
       {/* Search and Filter Section */}
@@ -296,7 +319,7 @@ export default function Page() {
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="w-full mt-1 justify-start text-left font-normal bg-transparent"
+                  className="w-full mt-1 justify-start text-left font-normal bg-transparent "
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {dateRange?.from ? (
@@ -337,6 +360,7 @@ export default function Page() {
           </Button>
           <Button
             variant="outline"
+            disabled={!isFilterActive()}
             onClick={handleReset}
             className="flex-1 sm:flex-none bg-transparent cursor-pointer"
           >
@@ -510,17 +534,17 @@ export default function Page() {
         {isLoading ? (
           // Skeleton Loading
           Array.from({ length: 8 }).map((_, index) => (
-            <Card key={index} className="overflow-hidden">
-              <Skeleton className="aspect-video w-full" />
+            <Card key={index} className="overflow-hidden border-0">
+              <Skeleton className="aspect-video w-full bg-gray-300 dark:bg-gray-800 animate-pulse" />
               <CardHeader className="space-y-2">
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-3 w-full" />
-                <Skeleton className="h-3 w-2/3" />
+                <Skeleton className="h-4 w-3/4 bg-gray-300 dark:bg-gray-800 animate-pulse" />
+                <Skeleton className="h-3 w-full bg-gray-300 dark:bg-gray-800 animate-pulse" />
+                <Skeleton className="h-3 w-2/3 bg-gray-300 dark:bg-gray-800 animate-pulse" />
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="flex justify-between items-center">
-                  <Skeleton className="h-5 w-16" />
-                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-5 w-16 bg-gray-300 dark:bg-gray-800 animate-pulse" />
+                  <Skeleton className="h-3 w-20 bg-gray-300 dark:bg-gray-800 animate-pulse" />
                 </div>
               </CardContent>
             </Card>
@@ -529,10 +553,10 @@ export default function Page() {
           filteredImages.map((image) => (
             <Card
               key={image.id}
-              className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+              className="overflow-hidden hover:shadow-2xl transition-shadow cursor-pointer border-0"
             >
               <div
-                className="aspect-video bg-muted relative overflow-hidden"
+                className="aspect-video bg-gray-300 relative overflow-hidden"
                 onClick={() => setPreviewImage(image)}
               >
                 <img
@@ -551,7 +575,7 @@ export default function Page() {
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="flex justify-between items-center">
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="" className="text-xs">
                     {image.category}
                   </Badge>
                   <span className="text-xs text-muted-foreground">
@@ -578,13 +602,13 @@ export default function Page() {
               <DialogHeader>
                 <DialogTitle className="flex items-center justify-between">
                   {previewImage.title}
-                  <Button
+                  {/* <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setPreviewImage(null)}
                   >
-                    <X className="h-4 w-4" />
-                  </Button>
+                    <X className="h-4 w-4 top-2 right-4" />
+                  </Button> */}
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
@@ -592,7 +616,7 @@ export default function Page() {
                   <img
                     src={previewImage.imageUrl || "/placeholder.svg"}
                     alt={previewImage.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover bg-gray-300"
                   />
                 </div>
                 <div className="space-y-2">
@@ -600,7 +624,9 @@ export default function Page() {
                     {previewImage.description}
                   </p>
                   <div className="flex justify-between items-center">
-                    <Badge variant="secondary">{previewImage.category}</Badge>
+                    <Badge variant="" className="text-xs">
+                      {previewImage.category}
+                    </Badge>
                     <span className="text-sm text-muted-foreground">
                       Uploaded:{" "}
                       {format(

@@ -87,7 +87,7 @@ function LoginPage() {
                       <Input
                         placeholder="Enter your email"
                         type="email"
-                        className="h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                        className="h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500 focus-visible:ring-2 focus-visible:ring-primary"
                         {...field}
                       />
                     </FormControl>
@@ -109,7 +109,7 @@ function LoginPage() {
                         <Input
                           placeholder="Enter your password"
                           type={showPassword ? "text" : "password"}
-                          className="h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500 pr-10"
+                          className="h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500 pr-10 focus-visible:ring-2 focus-visible:ring-primary"
                           {...field}
                         />
                         <button
@@ -118,13 +118,13 @@ function LoginPage() {
                           className="absolute right-3.5 top-1/2 -translate-y-1/2 text-blackk cursor-pointer focus:outline-none"
                           onClick={() => setShowPassword((prev) => !prev)}
                           aria-label={
-                            showPassword ? "Hide password" : "Show password"
+                            showPassword ? "Show password" : "Hide password"
                           }
                         >
                           {showPassword ? (
-                            <EyeOff size={20} />
-                          ) : (
                             <Eye size={20} />
+                          ) : (
+                            <EyeOff size={20} />
                           )}
                         </button>
                       </div>
