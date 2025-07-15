@@ -23,13 +23,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-
-// Login validation schema
-const LoginSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
-
+import { LoginSchema } from "@/utils/validations/AuthSchema";
 export type LoginForm = z.infer<typeof LoginSchema>;
 
 function LoginPage() {
