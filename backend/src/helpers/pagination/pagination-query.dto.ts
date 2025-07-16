@@ -42,7 +42,6 @@ export class PaginationQuery {
 
   protected getDefaultPaginationOptions(): any {
     console.log('default pagination option in pagination query', this.page)
-
     const defaultPagination = {
       page: this.page,
       limit: this.limit,

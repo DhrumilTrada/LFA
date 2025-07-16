@@ -2,10 +2,9 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString, IsArray, IsNumber } from 'class-validator';
 
 export class CreateGalleryDto {
-  @ApiProperty({ example: 'image.jpg' })
-  @IsNotEmpty()
-  @IsString()
-  image: string;
+  @ApiPropertyOptional({ example: 'image.jpg' })
+  @IsOptional()
+  image: any;
 
   @ApiProperty({ example: 'Gallery Title' })
   @IsNotEmpty()
