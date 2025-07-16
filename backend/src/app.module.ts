@@ -25,8 +25,7 @@ import { MailsModule } from './mails/mails.module'
 import { BullModule } from '@nestjs/bull'
 import { BullConfig } from './config/bull.config'
 import { BullConfigModule } from './bull/bull-config.module'
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler'
-import { APP_GUARD } from '@nestjs/core'
+import { ThrottlerModule } from '@nestjs/throttler'
 import { CacheModule } from '@nestjs/cache-manager'
 import { createKeyv } from '@keyv/redis'
 import { CustomCacheModule } from './cache/cache.module'
@@ -53,23 +52,7 @@ import { CloudinaryConfig } from './config/cloudinary.config'
       ]
     }),
 
-    MongooseModule.forRootAsync({
-      inject: [DatabaseConfig],
-      useFactory: async (databaseConfig: DatabaseConfig) => ({
-        uri: databaseConfig.dbMongo,
-        dbName: databaseConfig.databaseName,
-
-        // transform mongoose schema
-        //remove '_id' and '__v' and add virtual key 'id'
-        connectionFactory(connection, name) {
-          mongoosePaginate.paginate.options =
-            AppConstants.DEFAULT_PAGINATION_OPTIONS
-
-          connection.plugin(mongooseSchemaTransform)
-          return connection
-        }
-      })
-    }),
+    MongooseModule.forRoot(process.env.MONGO_URI),
 
     //pino module for logging
     LoggerModule.forRootAsync({
