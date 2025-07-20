@@ -82,4 +82,10 @@ export class GalleryController {
   remove(@Param('id') id: string) {
     return this.galleryService.remove(id);
   }
+
+  @ApiOperation({ summary: 'Return a static category enum' })
+  @Get('categories')
+  getCategories() {
+    return this.galleryService.getCategories();
+  }
 }
