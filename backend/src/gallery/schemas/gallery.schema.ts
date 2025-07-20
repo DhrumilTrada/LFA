@@ -17,11 +17,8 @@ export class Gallery {
   @Prop()
   description?: string;
 
-  @Prop({ type: [String] })
-  tags?: string[];
-
-  @Prop({ required: true })
-  year: number;
+  @Prop({ default: new Date() })
+  createdAt: Date;
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', select: false })
   createdBy: any;

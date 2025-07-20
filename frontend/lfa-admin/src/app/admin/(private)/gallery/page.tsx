@@ -1,6 +1,9 @@
   "use client";
   import type React from "react";
   import { useState, useCallback, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import type { RootState, AppDispatch } from "@/app/store";
+import { fetchGalleries, createGallery, updateGallery, deleteGallery } from "@/features/gallery/galleryThunks";
   import { useForm } from "react-hook-form";
   import { zodResolver } from "@hookform/resolvers/zod";
   import * as z from "zod";
@@ -83,58 +86,7 @@
   import { format } from "date-fns";
   import type { DateRange } from "react-day-picker";
 
-  // Mock data with proper image URLs
-  const mockImages = [
-    {
-      id: 1,
-      title: "Mountain Landscape",
-      description:
-        "Beautiful mountain view during sunset with golden hour lighting",
-      category: "Nature",
-      uploadDate: "2024-01-15",
-      imageUrl: "/placeholder.svg?height=300&width=400",
-    },
-    {
-      id: 2,
-      title: "City Architecture",
-      description: "Modern building with glass facade in downtown area",
-      category: "Architecture",
-      uploadDate: "2024-01-14",
-      imageUrl: "/placeholder.svg?height=300&width=400",
-    },
-    {
-      id: 3,
-      title: "Portrait Photography",
-      description: "Professional headshot with natural lighting",
-      category: "Portrait",
-      uploadDate: "2024-01-13",
-      imageUrl: "/placeholder.svg?height=300&width=400",
-    },
-    {
-      id: 4,
-      title: "Food Styling",
-      description: "Gourmet dish presentation with artistic plating",
-      category: "Food",
-      uploadDate: "2024-01-12",
-      imageUrl: "/placeholder.svg?height=300&width=400",
-    },
-    {
-      id: 5,
-      title: "Abstract Art",
-      description: "Colorful abstract composition with geometric shapes",
-      category: "Art",
-      uploadDate: "2024-01-11",
-      imageUrl: "/placeholder.svg?height=300&width=400",
-    },
-    {
-      id: 6,
-      title: "Wildlife Photography",
-      description: "Rare bird species captured in natural habitat",
-      category: "Nature",
-      uploadDate: "2024-01-10",
-      imageUrl: "/placeholder.svg?height=300&width=400",
-    },
-  ];
+// ...existing code...
 
   const categories = [
     "All",
@@ -147,14 +99,8 @@
     "Travel",
   ];
 
-  interface ImageData {
-    id: number;
-    title: string;
-    description: string;
-    category: string;
-    uploadDate: string;
-    imageUrl: string;
-  }
+// Use Gallery interface from slice for type
+import type { Gallery } from "@/features/gallery/gallerySlice";
 
   const uploadSchema = z.object({
     title: z
@@ -186,19 +132,22 @@
   type EditFormData = z.infer<typeof editSchema>;
 
   export default function Page() {
+    const dispatch = useDispatch<AppDispatch>();
+    const { galleries, loading, error } = useSelector((state: RootState) => {
+      console.log("Redux selector called - galleries:", state.gallery);
+      return state.gallery;
+    });
     const [searchTitle, setSearchTitle] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
-    const [isLoading, setIsLoading] = useState(true);
-    const [images, setImages] = useState<ImageData[]>(mockImages);
-    const [filteredImages, setFilteredImages] = useState<ImageData[]>(mockImages);
     const [isUploadOpen, setIsUploadOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
-    const [previewImage, setPreviewImage] = useState<ImageData | null>(null);
-    const [editingImage, setEditingImage] = useState<ImageData | null>(null);
-    const [deleteImageId, setDeleteImageId] = useState<number | null>(null);
+    const [previewImage, setPreviewImage] = useState<Gallery | null>(null);
+    const [editingImage, setEditingImage] = useState<Gallery | null>(null);
+    const [deleteImageId, setDeleteImageId] = useState<string | null>(null);
     const [dragActive, setDragActive] = useState(false);
     const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
+    const [filteredImages, setFilteredImages] = useState<Gallery[]>([]);
 
     // React Hook Form setup
     const uploadForm = useForm<UploadFormData>({
@@ -220,55 +169,44 @@
     });
 
     useEffect(() => {
-      const timer = setTimeout(() => {
-        setImages(mockImages);
-        setFilteredImages(mockImages);
-        setIsLoading(false);
-      }, 800);
+      dispatch(fetchGalleries());
+    }, [dispatch]);
 
-      return () => clearTimeout(timer);
-    }, []);
+    // ✅ This will run after Redux state is updated
+    useEffect(() => {
+      console.log("galleries (updated):", galleries?.data);
+    }, [galleries]);
+
+    useEffect(() => {
+      setFilteredImages(galleries?.data);
+    }, [galleries]);
 
     // Handle search and filtering
     const handleSearch = useCallback(() => {
-      setIsLoading(true);
-
-      setTimeout(() => {
-        let filtered = images;
-
-        if (searchTitle.trim()) {
-          filtered = filtered.filter((img) =>
-            img.title.toLowerCase().includes(searchTitle.toLowerCase())
-          );
-        }
-
-        if (selectedCategory !== "All") {
-          filtered = filtered.filter((img) => img.category === selectedCategory);
-        }
-
-        if (dateRange?.from && dateRange?.to) {
-          filtered = filtered.filter((img) => {
-            const imgDate = new Date(img.uploadDate);
-            return imgDate >= dateRange.from! && imgDate <= dateRange.to!;
-          });
-        }
-
-        setFilteredImages(filtered);
-        setIsLoading(false);
-      }, 800);
-    }, [searchTitle, selectedCategory, dateRange, images]);
+      let filtered = galleries;
+      if (searchTitle.trim()) {
+        filtered = filtered.filter((img) =>
+          img.title.toLowerCase().includes(searchTitle.toLowerCase())
+        );
+      }
+      if (selectedCategory !== "All") {
+        filtered = filtered.filter((img) => img.category === selectedCategory);
+      }
+      // if (dateRange?.from && dateRange?.to) {
+      //   filtered = filtered.filter((img) => {
+      //     const imgDate = new Date(img.year, 0, 1); // year only
+      //     return imgDate >= dateRange.from! && imgDate <= dateRange.to!;
+      //   });
+      // }
+      setFilteredImages(filtered);
+    }, [searchTitle, selectedCategory, dateRange, galleries]);
 
     // Handle reset filters
     const handleReset = () => {
-      setIsLoading(true);
-
-      setTimeout(() => {
-        setSearchTitle("");
-        setSelectedCategory("All");
-        setDateRange(undefined);
-        setFilteredImages(images);
-        setIsLoading(false);
-      }, 1500);
+      setSearchTitle("");
+      setSelectedCategory("All");
+      setDateRange(undefined);
+      setFilteredImages(galleries);
     };
 
     // Handle drag and drop
@@ -320,18 +258,16 @@
     };
 
     // Handle upload save
-    const handleUploadSave = (data: UploadFormData) => {
-      const newImage: ImageData = {
-        id: Date.now(),
+    const handleUploadSave = async (data: UploadFormData) => {
+      // Map form data to Gallery DTO
+      const galleryData = {
         title: data.title,
         description: data.description,
         category: data.category,
-        uploadDate: new Date().toISOString().split("T")[0],
-        imageUrl: URL.createObjectURL(data.image),
+        image: data.image,
+        year: new Date().getFullYear(),
       };
-
-      setImages((prev) => [newImage, ...prev]);
-      setFilteredImages((prev) => [newImage, ...prev]);
+      await dispatch(createGallery(galleryData as any));
       uploadForm.reset();
       setIsUploadOpen(false);
     };
@@ -343,7 +279,7 @@
     };
 
     // Handle edit open
-    const handleEditOpen = (image: ImageData) => {
+    const handleEditOpen = (image: Gallery) => {
       setEditingImage(image);
       setEditImagePreview(null);
       editForm.reset({
@@ -355,24 +291,16 @@
     };
 
     // Handle edit save
-    const handleEditSave = (data: EditFormData) => {
+    const handleEditSave = async (data: EditFormData) => {
       if (!editingImage) return;
-
-      const updatedImage: ImageData = {
+      const galleryData = {
         ...editingImage,
         title: data.title,
         description: data.description,
         category: data.category,
-        imageUrl: editImagePreview || editingImage.imageUrl,
+        image: data.image,
       };
-
-      setImages((prev) =>
-        prev.map((img) => (img.id === editingImage.id ? updatedImage : img))
-      );
-      setFilteredImages((prev) =>
-        prev.map((img) => (img.id === editingImage.id ? updatedImage : img))
-      );
-
+      await dispatch(updateGallery(galleryData as any));
       editForm.reset();
       setEditingImage(null);
       setEditImagePreview(null);
@@ -393,9 +321,8 @@
     };
 
     // Handle delete
-    const handleDelete = (id: number) => {
-      setImages((prev) => prev.filter((img) => img.id !== id));
-      setFilteredImages((prev) => prev.filter((img) => img.id !== id));
+    const handleDelete = async (id: string) => {
+      await dispatch(deleteGallery(id));
       setDeleteImageId(null);
     };
 
@@ -570,7 +497,7 @@
                 <img
                   src={
                     editImagePreview ||
-                    editingImage.imageUrl ||
+                    editingImage.image ||
                     "/placeholder.svg"
                   }
                   alt={editingImage.title}
@@ -899,7 +826,7 @@
               <div className="space-y-4">
                 <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
                   <img
-                    src={previewImage.imageUrl || "/placeholder.svg"}
+                    src={previewImage.image || "/placeholder.svg"}
                     alt={previewImage.title}
                     className="w-full h-full object-contain"
                   />
@@ -911,7 +838,7 @@
                   <div className="flex justify-between items-center">
                     <Badge>{previewImage.category}</Badge>
                     <span className="text-xs text-muted-foreground">
-                      {format(new Date(previewImage.uploadDate), "MMM dd, yyyy")}
+                      {/* {format(new Date(previewImage.createdAt), "MMM dd, yyyy")} */}
                     </span>
                   </div>
                 </div>
@@ -922,7 +849,7 @@
 
         {/* Image Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {isLoading ? (
+          {loading ? (
             // Skeleton Loading
             Array.from({ length: 8 }).map((_, index) => (
               <Card key={index} className="overflow-hidden border-0 group">
@@ -940,15 +867,15 @@
                 </CardContent>
               </Card>
             ))
-          ) : filteredImages.length > 0 ? (
+          ) : filteredImages?.length > 0 ? (
             filteredImages.map((image) => (
               <Card
-                key={image.id}
+                key={image?._id}
                 className="overflow-hidden hover:shadow-2xl transition-all duration-200 border group"
               >
                 <div className="aspect-video bg-gray-100 relative overflow-hidden">
                   <img
-                    src={image.imageUrl || "/placeholder.svg"}
+                    src={image.image || "/placeholder.svg"}
                     alt={image.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                   />
@@ -982,7 +909,7 @@
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => setDeleteImageId(image.id)}
+                          onClick={() => setDeleteImageId(image.id ?? null)}
                           className="cursor-pointer"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
@@ -1020,7 +947,7 @@
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => setDeleteImageId(image.id)}
+                          onClick={() => setDeleteImageId(image.id ?? null)}
                           className="cursor-pointer"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
@@ -1042,9 +969,9 @@
                 <CardContent className="pt-0">
                   <div className="flex justify-between items-center">
                     <Badge className="text-xs">{image.category}</Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {format(new Date(image.uploadDate), "MMM dd, yyyy")}
-                    </span>
+                    {/* <span className="text-xs text-muted-foreground">
+                      {format(new Date(image.createdAt), "MMM dd, yyyy")}
+                    </span> */}
                   </div>
                 </CardContent>
               </Card>

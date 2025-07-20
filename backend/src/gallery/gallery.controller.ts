@@ -44,6 +44,7 @@ export class GalleryController {
     if (files.image?.[0]) {
       createGalleryDto.image = files.image[0].buffer;
     }
+    console.log('Creating gallery item with data:', createGalleryDto);
     return this.galleryService.create(createGalleryDto, userId);
   }
 

@@ -24,7 +24,7 @@ export class GalleryService {
       imageUrl = result.url;
       size = result.size;
     }
-    const created = new this.galleryModel({ ...createGalleryDto, image: imageUrl, size, createdBy: userId });
+    const created = new this.galleryModel({ ...createGalleryDto, image: imageUrl, size, createdBy: userId, createdAt: new Date() });
     return created.save();
   }
 

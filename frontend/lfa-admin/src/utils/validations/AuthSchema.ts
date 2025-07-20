@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const LoginSchema = z.object({
-  email: z
+  username: z
     .string()
     .min(1, { message: "This field is required." })
     .refine(
