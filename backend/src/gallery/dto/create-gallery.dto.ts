@@ -20,4 +20,15 @@ export class CreateGalleryDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiPropertyOptional({ example: ['tag1', 'tag2'] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
+
+  @ApiProperty({ example: 2025 })
+  @IsNotEmpty()
+  @IsNumber()
+  year: number;
 }

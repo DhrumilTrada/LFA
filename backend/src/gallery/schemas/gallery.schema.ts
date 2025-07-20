@@ -17,14 +17,17 @@ export class Gallery {
   @Prop()
   description?: string;
 
+  @Prop({ type: [String] })
+  tags?: string[];
+
+  @Prop({ required: true })
+  year: number;
+
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', select: false })
   createdBy: any;
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', select: false })
   updatedBy: any;
-
-  @Prop({ default: Date.now })
-  createdAt?: Date;
 }
 
 export const GallerySchema = SchemaFactory.createForClass(Gallery);

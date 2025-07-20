@@ -24,7 +24,7 @@ export class GalleryService {
       imageUrl = result.url;
       size = result.size;
     }
-    const created = new this.galleryModel({ ...createGalleryDto, image: imageUrl, size, createdBy: userId, createdAt: new Date() });
+    const created = new this.galleryModel({ ...createGalleryDto, image: imageUrl, size, createdBy: userId });
     return created.save();
   }
 
@@ -54,18 +54,5 @@ export class GalleryService {
 
   async remove(id: string) {
     return this.galleryModel.findByIdAndDelete(id).exec();
-  }
-
-  async getCategories() {
-    const categories = [
-      {"key": 'nature', 'value': 'Nature'},
-      {"key": 'architecture', 'value': 'Architecture'},
-      {"key": 'people', 'value': 'People'},
-      {"key": 'animals', 'value': 'Animals'},
-      {"key": 'food', 'value': 'Food'},
-      {"key": 'travel', 'value': 'Travel'},
-      {"key": 'technology', 'value': 'Technology'},
-    ]
-    return categories;
   }
 }
