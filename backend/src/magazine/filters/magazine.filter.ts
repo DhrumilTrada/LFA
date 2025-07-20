@@ -7,8 +7,7 @@ import { PaginationQuery } from '../../helpers/pagination/pagination-query.dto';
 
 export class MagazineFilter {
   @IsOptional()
-  @ApiPropertyOptional()
-  status?: string;
+  status:any
 }
 
 export class MagazinePaginationQuery extends PaginationQuery implements EntityPaginationQueryInterface {

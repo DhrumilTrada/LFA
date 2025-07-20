@@ -1,4 +1,4 @@
-FROM node:16.13.2
+FROM node:20-bookworm
 
 # RUN npm install --global rimraf && npm install --global parcel-bundler
 

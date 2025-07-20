@@ -35,21 +35,14 @@ export class CreateMagazineDto {
 
   @ApiPropertyOptional({ example: 'image.jpg' })
   @IsOptional()
-  @IsString()
-  image?: string;
+  image?: any;
 
   @ApiProperty({ example: 'magazine.pdf' })
-  @IsNotEmpty()
-  @IsString()
-  pdf: string;
+  @IsOptional()
+  pdf?: any;
 
   @ApiProperty({ example: '2023-10-01T00:00:00Z' })
   @IsNotEmpty()
   @IsDateString()
   uploadedAt: string;
-
-  @ApiProperty({ example: 1024 })
-  @IsNotEmpty()
-  @IsNumber()
-  size: number;
 }
