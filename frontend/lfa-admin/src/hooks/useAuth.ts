@@ -15,11 +15,11 @@ export const useAuth = () => {
 
   // Actions
   const login = (credentials: LoginCredentials) => {
-    return dispatch(loginUser(credentials)).unwrap();
+    return dispatch(loginUser(credentials));
   };
 
   const register = (userData: { name: string; email: string; password: string }) => {
-    return dispatch(registerUser(userData)).unwrap();
+    return dispatch(registerUser(userData));
   };
 
   const logout = () => {
