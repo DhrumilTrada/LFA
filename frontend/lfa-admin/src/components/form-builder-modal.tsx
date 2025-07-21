@@ -309,6 +309,7 @@ export default function FormBuilderModal({
                             onCheckedChange={(checked) =>
                               updateField(field.id, { required: checked })
                             }
+                            className="cursor-pointer"
                           />
                           <Label>Required</Label>
                         </div>
@@ -364,7 +365,7 @@ export default function FormBuilderModal({
                       placeholder="https://sheets.google.com/..."
                       value={googleSheetsLink}
                       onChange={(e) => setGoogleSheetsLink(e.target.value)}
-                      className="mt-1"
+                      className="mt-1 focus-visible:ring-2 focus-visible:ring-primary"
                     />
                     <p className="text-sm text-gray-600 mt-1">
                       Connect to Google Sheets to automatically save submissions

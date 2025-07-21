@@ -10,6 +10,8 @@ import {
   UseGuards,
   Logger,
   UseInterceptors,
+  UploadedFile,
+  UploadedFiles
 } from '@nestjs/common';
 import { MagazineService } from './magazine.service';
 import { CreateMagazineDto } from './dto/create-magazine.dto';
@@ -17,7 +19,10 @@ import { UpdateMagazineDto } from './dto/update-magazine.dto';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ResponseMessage } from '../helpers/response-mapping/response.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { MagazinePaginationQuery, MagazineSelectTypeQuery } from './filters/magazine.filter';
+import { MagazinePaginationQuery } from './filters/magazine.filter';
+import { UserId } from 'src/auth/decorators/user.decorator';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { File as MulterFile } from 'multer';
 
 @ApiTags('Magazine')
 @Controller('magazines')
@@ -31,19 +36,29 @@ export class MagazineController {
   @ApiBearerAuth('access-token')
   @ResponseMessage('Magazine created successfully')
   @Post()
-  create(
+  @UseInterceptors(
+    FileFieldsInterceptor([{ name: 'image', maxCount: 1 }, { name: 'pdf', maxCount: 1 }])
+  )
+  async create(
+    @UploadedFiles() files: { image?: MulterFile[]; pdf?: MulterFile[]; },
     @Body() createMagazineDto: CreateMagazineDto,
-    // @UserId() userId: string // Uncomment if you have user context
+    @UserId() userId: string,
   ) {
-    this.logger.log('inside create magazine controller');
-    return this.magazineService.create(createMagazineDto, null); // Replace null with userId if available
+    if (files.image?.[0]) {
+      createMagazineDto.image = files.image[0].buffer;
+    }
+    if (files.pdf?.[0]) {
+      createMagazineDto.pdf = files.pdf[0].buffer;
+    }
+    return this.magazineService.create(createMagazineDto, userId);
   }
 
   @ApiOperation({ summary: 'Get a list of magazines' })
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('access-token')
+  // @UseGuards(JwtAuthGuard)
+  // @ApiBearerAuth('access-token')
   @Get()
   findAll(@Query() query: MagazinePaginationQuery) {
+    console.log("Pararms", query);
     return this.magazineService.findAll(query);
   }
 

@@ -10,6 +10,7 @@ import {
   UseGuards,
   Logger,
   UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
 import { GalleryService } from './gallery.service';
 import { CreateGalleryDto } from './dto/create-gallery.dto';
@@ -17,7 +18,10 @@ import { UpdateGalleryDto } from './dto/update-gallery.dto';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ResponseMessage } from '../helpers/response-mapping/response.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { GalleryPaginationQuery, GallerySelectTypeQuery } from './filters/gallery.filter';
+import { GalleryPaginationQuery } from './filters/gallery.filter';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { UserId } from 'src/auth/decorators/user.decorator';
+import { File as MulterFile } from 'multer';
 
 @ApiTags('Gallery')
 @Controller('galleries')
@@ -31,12 +35,16 @@ export class GalleryController {
   @ApiBearerAuth('access-token')
   @ResponseMessage('Gallery item created successfully')
   @Post()
-  create(
+  @UseInterceptors(FileFieldsInterceptor([{ name: 'image', maxCount: 1 }]))
+  async create(
+    @UploadedFiles() files: { image?: MulterFile[] },
     @Body() createGalleryDto: CreateGalleryDto,
-    // @UserId() userId: string // Uncomment if you have user context
+    @UserId() userId: string, // Assumes you have a @UserId() decorator
   ) {
-    this.logger.log('inside create gallery controller');
-    return this.galleryService.create(createGalleryDto, null); // Replace null with userId if available
+    if (files.image?.[0]) {
+      createGalleryDto.image = files.image[0].buffer;
+    }
+    return this.galleryService.create(createGalleryDto, userId);
   }
 
   @ApiOperation({ summary: 'Get a list of gallery items' })

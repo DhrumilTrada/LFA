@@ -3,14 +3,14 @@ import { Transform } from 'class-transformer'
 import { IsEmail, IsNotEmpty, IsString } from 'class-validator'
 
 export class UserLoginDto {
-  @ApiProperty({ example: 'abc@example.com' })
+  @ApiProperty({ example: 'admin@lfa.com' })
   @IsNotEmpty()
   @IsString()
   @IsEmail()
   @Transform(({ value }) => value.toLowerCase())
   username: string
 
-  @ApiProperty({ example: 'password' })
+  @ApiProperty({ example: 'admin@123' })
   @IsNotEmpty()
   @IsString()
   password: string
