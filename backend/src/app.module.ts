@@ -26,9 +26,6 @@ import { BullModule } from '@nestjs/bull'
 import { BullConfig } from './config/bull.config'
 import { BullConfigModule } from './bull/bull-config.module'
 import { ThrottlerModule } from '@nestjs/throttler'
-import { CacheModule } from '@nestjs/cache-manager'
-import { createKeyv } from '@keyv/redis'
-import { CustomCacheModule } from './cache/cache.module'
 import { MagazineModule } from './magazine/magazine.module'
 import { GalleryModule } from './gallery/gallery.module'
 import { EditorialModule } from './editorial/editorial.module'
@@ -146,11 +143,7 @@ import { CloudinaryConfig } from './config/cloudinary.config'
     BullModule.forRootAsync({
       inject: [BullConfig],
       useFactory: (bullConfig: BullConfig) => ({
-        redis: {
-          host: bullConfig.bullHost,
-          port: bullConfig.bullRedisPort,
-          maxRetriesPerRequest: null
-        }
+        redis: bullConfig.bullRedisUrl
       })
     }),
 
@@ -170,17 +163,6 @@ import { CloudinaryConfig } from './config/cloudinary.config'
     EditorialModule,
     FormModule,
     CloudinaryModule,
-    ...(process.env.CACHE_ENABLED === 'true' ? [
-      CacheModule.registerAsync({
-        useFactory: async () => {
-          return {
-            stores: [createKeyv('redis://localhost:6379/1')]
-          }
-        },
-        isGlobal: true
-      }),
-      CustomCacheModule
-    ] : [])
   ],
   controllers: [AppController],
   providers: [AppService]
