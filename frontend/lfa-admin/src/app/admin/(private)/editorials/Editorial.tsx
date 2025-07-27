@@ -20,13 +20,13 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
+  SheetTrigger,
 } from "@/components/ui/sheet";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -910,26 +910,26 @@ export default function EditorialManagement() {
           <h1 className="text-3xl font-bold">Editorial Management</h1>
           <p className="text-gray-400">Upload and manage editorial content</p>
         </div>
-        {/* Upload Dialog */}
-        <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700  cursor-pointer">
+        {/* Upload Editorial Sheet Sidebar */}
+        <Sheet open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+          <SheetTrigger asChild>
+            <Button className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 cursor-pointer">
               <Plus className="h-4 w-4" />
               Upload Editorial
             </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-semibold">
+          </SheetTrigger>
+          <SheetContent className="w-full sm:max-w-lg overflow-x-hidden overflow-y-auto">
+            <SheetHeader className="text-left pb-6">
+              <SheetTitle className="text-xl font-semibold">
                 Upload New Editorial
-              </DialogTitle>
-              <p className="text-sm text-muted-foreground">
+              </SheetTitle>
+              <SheetDescription className="text-muted-foreground">
                 Add a new editorial to the collection
-              </p>
-            </DialogHeader>
-            <div className="mt-4">{renderUploadForm()}</div>
-          </DialogContent>
-        </Dialog>
+              </SheetDescription>
+            </SheetHeader>
+            <div className="px-6">{renderUploadForm()}</div>
+          </SheetContent>
+        </Sheet>
       </div>
 
       {/* Statistics Cards */}

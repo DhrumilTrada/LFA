@@ -20,6 +20,7 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
+  SheetTrigger,
 } from "@/components/ui/sheet";
 import {
   Dialog,
@@ -1016,26 +1017,26 @@ export default function MagazineManagement() {
             Upload and manage magazine publications
           </p>
         </div>
-        {/* Upload Dialog */}
-        <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-          <DialogTrigger asChild>
+        {/* Upload Sheet (Sidebar) */}
+        <Sheet open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+          <SheetTrigger asChild>
             <Button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white cursor-pointer">
               <Plus className="h-4 w-4" />
               Upload Magazine
             </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-semibold">
+          </SheetTrigger>
+          <SheetContent className="w-full sm:max-w-lg overflow-x-hidden overflow-y-auto">
+            <SheetHeader className="text-left pb-6">
+              <SheetTitle className="text-xl font-semibold">
                 Upload New Magazine
-              </DialogTitle>
-              <p className="text-sm text-muted-foreground">
+              </SheetTitle>
+              <SheetDescription className="text-muted-foreground">
                 Add a new magazine issue to the collection
-              </p>
-            </DialogHeader>
-            <div className="mt-4">{renderUploadForm()}</div>
-          </DialogContent>
-        </Dialog>
+              </SheetDescription>
+            </SheetHeader>
+            <div className="p-6">{renderUploadForm()}</div>
+          </SheetContent>
+        </Sheet>
       </div>
 
       {/* Statistics Cards */}

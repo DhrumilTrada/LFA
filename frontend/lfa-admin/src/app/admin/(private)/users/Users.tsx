@@ -19,6 +19,7 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
+  SheetTrigger,
 } from "@/components/ui/sheet";
 import {
   Dialog,
@@ -667,26 +668,26 @@ export default function UserManagement() {
           <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
           <p className="text-gray-600">Manage user accounts and permissions</p>
         </div>
-        {/* Add User Dialog */}
-        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-          <DialogTrigger asChild>
+        {/* Add User Sheet Sidebar */}
+        <Sheet open={isAddOpen} onOpenChange={setIsAddOpen}>
+          <SheetTrigger asChild>
             <Button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white cursor-pointer">
               <Plus className="h-4 w-4" />
               Add User
             </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-semibold">
+          </SheetTrigger>
+          <SheetContent className="w-full sm:max-w-lg overflow-x-hidden overflow-y-auto">
+            <SheetHeader className="text-left pb-6">
+              <SheetTitle className="text-xl font-semibold">
                 Add New User
-              </DialogTitle>
-              <p className="text-sm text-muted-foreground">
+              </SheetTitle>
+              <SheetDescription className="text-muted-foreground">
                 Create a new user account
-              </p>
-            </DialogHeader>
-            <div className="mt-4">{renderAddForm()}</div>
-          </DialogContent>
-        </Dialog>
+              </SheetDescription>
+            </SheetHeader>
+            <div className="px-6">{renderAddForm()}</div>
+          </SheetContent>
+        </Sheet>
       </div>
 
       {/* Statistics Cards */}
