@@ -569,7 +569,7 @@ export default function EditorialManagement() {
     <Form {...uploadForm}>
       <form
         onSubmit={uploadForm.handleSubmit(handleUploadSave)}
-        className="space-y-4"
+        className="space-y-4 mx-4"
       >
         {/* Title */}
         <FormField
@@ -577,7 +577,7 @@ export default function EditorialManagement() {
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Editorial Title *</FormLabel>
+              <FormLabel>Editorial Title </FormLabel>
               <FormControl>
                 <Input
                   placeholder="e.g., The Future of Digital Art"
@@ -596,7 +596,7 @@ export default function EditorialManagement() {
           name="category"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Category *</FormLabel>
+              <FormLabel>Category</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
@@ -624,7 +624,7 @@ export default function EditorialManagement() {
           name="status"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Status *</FormLabel>
+              <FormLabel>Status</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
@@ -647,7 +647,7 @@ export default function EditorialManagement() {
           name="cover"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Cover Image *</FormLabel>
+              <FormLabel>Cover Image</FormLabel>
               <FormControl>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                   <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
@@ -689,7 +689,7 @@ export default function EditorialManagement() {
           name="pdf"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>PDF File *</FormLabel>
+              <FormLabel>PDF File </FormLabel>
               <FormControl>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                   <FileText className="mx-auto h-8 w-8 text-gray-400 mb-2" />
@@ -724,10 +724,10 @@ export default function EditorialManagement() {
         />
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-4">
+        <div className="flex gap-3 pt-2 mb-4">
           <Button
             type="submit"
-            className="flex-1 bg-purple-600 hover:bg-purple-700"
+            className="flex-1 bg-blue-600 hover:bg-blue-700 cursor-pointer"
           >
             Upload Editorial
           </Button>
@@ -735,7 +735,7 @@ export default function EditorialManagement() {
             type="button"
             variant="outline"
             onClick={handleUploadCancel}
-            className="flex-1 bg-transparent"
+            className="flex-1 bg-transparent cursor-pointer"
           >
             Cancel
           </Button>
@@ -885,7 +885,7 @@ export default function EditorialManagement() {
         <div className="flex gap-3 pb-4">
           <Button
             type="submit"
-            className="flex-1 bg-purple-600 hover:bg-purple-700 cursor-pointer"
+            className="flex-1 bg-blue-600 hover:bg-blue-700 cursor-pointer"
           >
             Update Editorial
           </Button>
@@ -913,13 +913,13 @@ export default function EditorialManagement() {
         {/* Upload Editorial Sheet Sidebar */}
         <Sheet open={isUploadOpen} onOpenChange={setIsUploadOpen}>
           <SheetTrigger asChild>
-            <Button className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 cursor-pointer">
+            <Button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 cursor-pointer">
               <Plus className="h-4 w-4" />
               Upload Editorial
             </Button>
           </SheetTrigger>
           <SheetContent className="w-full sm:max-w-lg overflow-x-hidden overflow-y-auto">
-            <SheetHeader className="text-left pb-6">
+            <SheetHeader className="text-left pb-3">
               <SheetTitle className="text-xl font-semibold">
                 Upload New Editorial
               </SheetTitle>
@@ -927,7 +927,7 @@ export default function EditorialManagement() {
                 Add a new editorial to the collection
               </SheetDescription>
             </SheetHeader>
-            <div className="px-6">{renderUploadForm()}</div>
+            <div className="px-1">{renderUploadForm()}</div>
           </SheetContent>
         </Sheet>
       </div>

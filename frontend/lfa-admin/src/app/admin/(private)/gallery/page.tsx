@@ -339,7 +339,7 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
       <Form {...uploadForm}>
         <form
           onSubmit={uploadForm.handleSubmit(handleUploadSave)}
-          className="space-y-6 mx-4"
+          className="space-y-4 mx-4"
         >
           {/* Image Upload Area */}
           <FormField
@@ -462,7 +462,7 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
           />
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-2 mb-4">
             <Button
               type="submit"
               className="flex-1 bg-blue-600 hover:bg-blue-700 cursor-pointer"
@@ -757,7 +757,7 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
                 </Button>
               </SheetTrigger>
               <SheetContent className="w-full sm:max-w-lg overflow-x-hidden overflow-y-auto">
-                <SheetHeader className="text-left pb-6">
+                <SheetHeader className="text-left pb-3">
                   <SheetTitle className="text-xl font-semibold">
                     Upload New Image
                   </SheetTitle>

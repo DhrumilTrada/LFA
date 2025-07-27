@@ -419,7 +419,7 @@ export default function UserManagement() {
     <Form {...addForm}>
       <form
         onSubmit={addForm.handleSubmit(handleAddSave)}
-        className="space-y-4"
+        className="space-y-4 mx-4"
       >
         {/* Name */}
         <FormField
@@ -427,7 +427,7 @@ export default function UserManagement() {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Full Name *</FormLabel>
+              <FormLabel>Full Name </FormLabel>
               <FormControl>
                 <Input
                   placeholder="e.g., John Doe"
@@ -446,7 +446,7 @@ export default function UserManagement() {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email Address *</FormLabel>
+              <FormLabel>Email Address </FormLabel>
               <FormControl>
                 <Input
                   type="email"
@@ -466,7 +466,7 @@ export default function UserManagement() {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password *</FormLabel>
+              <FormLabel>Password </FormLabel>
               <FormControl>
                 <Input
                   type="password"
@@ -486,7 +486,7 @@ export default function UserManagement() {
           name="role"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Role *</FormLabel>
+              <FormLabel>Role </FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
@@ -530,7 +530,7 @@ export default function UserManagement() {
         <div className="flex gap-3 pt-4">
           <Button
             type="submit"
-            className="flex-1 bg-blue-600 hover:bg-blue-700"
+            className="flex-1 bg-blue-600 hover:bg-blue-700 cursor-pointer"
           >
             Add User
           </Button>
@@ -538,7 +538,7 @@ export default function UserManagement() {
             type="button"
             variant="outline"
             onClick={handleAddCancel}
-            className="flex-1 bg-transparent"
+            className="flex-1 bg-transparent cursor-pointer"
           >
             Cancel
           </Button>
@@ -677,7 +677,7 @@ export default function UserManagement() {
             </Button>
           </SheetTrigger>
           <SheetContent className="w-full sm:max-w-lg overflow-x-hidden overflow-y-auto">
-            <SheetHeader className="text-left pb-6">
+            <SheetHeader className="text-left pb-3">
               <SheetTitle className="text-xl font-semibold">
                 Add New User
               </SheetTitle>
@@ -685,7 +685,7 @@ export default function UserManagement() {
                 Create a new user account
               </SheetDescription>
             </SheetHeader>
-            <div className="px-6">{renderAddForm()}</div>
+            <div className="px-1">{renderAddForm()}</div>
           </SheetContent>
         </Sheet>
       </div>
@@ -1186,7 +1186,7 @@ export default function UserManagement() {
       {/* Edit Sheet */}
       <Sheet open={isEditOpen} onOpenChange={setIsEditOpen}>
         <SheetContent className="w-full sm:max-w-lg overflow-x-hidden overflow-y-auto">
-          <SheetHeader className="text-left pb-6">
+          <SheetHeader className="text-left pb-3">
             <SheetTitle className="text-xl font-semibold">Edit User</SheetTitle>
             <SheetDescription className="text-muted-foreground">
               Update user details and permissions.

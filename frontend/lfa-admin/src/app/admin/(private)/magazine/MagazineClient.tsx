@@ -579,7 +579,7 @@ export default function MagazineManagement() {
     <Form {...uploadForm}>
       <form
         onSubmit={uploadForm.handleSubmit(handleUploadSave)}
-        className="space-y-4"
+        className="space-y-4 mx-4"
       >
         {/* Title */}
         <FormField
@@ -587,7 +587,7 @@ export default function MagazineManagement() {
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Magazine Title *</FormLabel>
+              <FormLabel>Magazine Title</FormLabel>
               <FormControl>
                 <Input
                   placeholder="e.g., Creative Expressions"
@@ -606,7 +606,7 @@ export default function MagazineManagement() {
           name="edition"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Edition *</FormLabel>
+              <FormLabel>Edition</FormLabel>
               <FormControl>
                 <Input
                   placeholder="e.g., Volume 5, Issue 2"
@@ -625,7 +625,7 @@ export default function MagazineManagement() {
           name="year"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Year *</FormLabel>
+              <FormLabel>Year</FormLabel>
               <FormControl>
                 <Input
                   type="number"
@@ -648,7 +648,7 @@ export default function MagazineManagement() {
           name="cover"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Cover Image *</FormLabel>
+              <FormLabel>Cover Image</FormLabel>
               <FormControl>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                   <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
@@ -725,10 +725,10 @@ export default function MagazineManagement() {
         />
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-4">
+        <div className="flex gap-3 pt-2 mb-4">
           <Button
             type="submit"
-            className="flex-1 bg-blue-600 hover:bg-blue-700"
+            className="flex-1 bg-blue-600 hover:bg-blue-700 cursor-pointer"
           >
             Upload Magazine
           </Button>
@@ -736,7 +736,7 @@ export default function MagazineManagement() {
             type="button"
             variant="outline"
             onClick={handleUploadCancel}
-            className="flex-1 bg-transparent"
+            className="flex-1 bg-transparent cursor-pointer"
           >
             Cancel
           </Button>
@@ -750,7 +750,7 @@ export default function MagazineManagement() {
     <Form {...editForm}>
       <form
         onSubmit={editForm.handleSubmit(handleEditSave)}
-        className="space-y-6 mx-4"
+        className="space-y-4 mx-4"
       >
         {/* Current Cover Preview */}
         {editingMagazine && (
@@ -1026,7 +1026,7 @@ export default function MagazineManagement() {
             </Button>
           </SheetTrigger>
           <SheetContent className="w-full sm:max-w-lg overflow-x-hidden overflow-y-auto">
-            <SheetHeader className="text-left pb-6">
+            <SheetHeader className="text-left pb-3">
               <SheetTitle className="text-xl font-semibold">
                 Upload New Magazine
               </SheetTitle>
@@ -1034,7 +1034,7 @@ export default function MagazineManagement() {
                 Add a new magazine issue to the collection
               </SheetDescription>
             </SheetHeader>
-            <div className="p-6">{renderUploadForm()}</div>
+            <div className="px-1">{renderUploadForm()}</div>
           </SheetContent>
         </Sheet>
       </div>
@@ -1199,7 +1199,7 @@ export default function MagazineManagement() {
       {/* Edit Sheet */}
       <Sheet open={isEditOpen} onOpenChange={setIsEditOpen}>
         <SheetContent className="w-full sm:max-w-lg overflow-x-hidden overflow-y-auto">
-          <SheetHeader className="text-left pb-6">
+          <SheetHeader className="text-left pb-3">
             <SheetTitle className="text-xl font-semibold">
               Edit Magazine
             </SheetTitle>
