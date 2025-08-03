@@ -8,6 +8,8 @@ import {
   BookOpen,
   Edit,
   Folder,
+  ClipboardList,
+  PenSquare,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Collapsible } from "@/components/ui/collapsible";
@@ -56,12 +58,12 @@ export const sidebarData = {
     {
       title: "Editorials",
       url: "/admin/editorials",
-      icon: Edit,
+      icon: PenSquare,
     },
     {
       title: "Forms",
       url: "/admin/forms",
-      icon: Edit,
+      icon: ClipboardList,
     },
   ],
 };

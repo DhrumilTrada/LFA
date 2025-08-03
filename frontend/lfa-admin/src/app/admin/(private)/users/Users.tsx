@@ -489,11 +489,11 @@ export default function UserManagement() {
               <FormLabel>Role </FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
+                <SelectContent className="w-full">
                   <SelectItem value="user">User</SelectItem>
                   <SelectItem value="editor">Editor</SelectItem>
                   <SelectItem value="superadmin">Super Admin</SelectItem>
@@ -602,11 +602,11 @@ export default function UserManagement() {
               <FormLabel>Role</FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
+                <SelectContent className="w-full">
                   <SelectItem value="user">User</SelectItem>
                   <SelectItem value="editor">Editor</SelectItem>
                   <SelectItem value="superadmin">Super Admin</SelectItem>
@@ -754,10 +754,10 @@ export default function UserManagement() {
           <div className="w-full sm:w-48">
             <Label className="text-sm font-medium text-gray-700">Role</Label>
             <Select value={selectedRole} onValueChange={setSelectedRole}>
-              <SelectTrigger className="mt-1 bg-white border-gray-300 text-gray-900">
+              <SelectTrigger className="mt-1 bg-white border-gray-300 text-gray-900 w-full">
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="w-full">
                 {roles.map((role) => (
                   <SelectItem key={role} value={role}>
                     {role === "All"
@@ -772,10 +772,10 @@ export default function UserManagement() {
           <div className="w-full sm:w-48">
             <Label className="text-sm font-medium text-gray-700">Status</Label>
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="mt-1 bg-white border-gray-300 text-gray-900">
+              <SelectTrigger className="mt-1 bg-white border-gray-300 text-gray-900 w-full">
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="w-full">
                 {statusOptions.map((status) => (
                   <SelectItem key={status} value={status}>
                     {status}
@@ -878,12 +878,14 @@ export default function UserManagement() {
             <TableHeader>
               <TableRow className="bg-gray-50 hover:bg-gray-100">
                 <TableHead className="text-gray-700">User</TableHead>
-                <TableHead className="text-gray-700">Email</TableHead>
+                <TableHead className="text-gray-700 ">Email</TableHead>
                 <TableHead className="text-gray-700">Role</TableHead>
                 <TableHead className="text-gray-700">Join Date</TableHead>
                 <TableHead className="text-gray-700">Last Active</TableHead>
                 <TableHead className="text-gray-700">Status</TableHead>
-                <TableHead className="w-32 text-gray-700">Actions</TableHead>
+                <TableHead className="w-32 text-gray-700 text-center">
+                  Actions
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -892,27 +894,31 @@ export default function UserManagement() {
                   <TableRow key={index} className="border-gray-200">
                     <TableCell>
                       <div className="flex items-center space-x-3">
-                        <Skeleton className="h-10 w-10 rounded-full bg-gray-200 animate-pulse" />
-                        <Skeleton className="h-4 w-32 bg-gray-200 animate-pulse" />
+                        <Skeleton className="h-10 w-10 rounded-full bg-gray-300 animate-pulse" />
+                        <Skeleton className="h-4 w-32 bg-gray-300 animate-pulse" />
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Skeleton className="h-4 w-40 bg-gray-200 animate-pulse" />
+                      <Skeleton className="h-4 w-40 bg-gray-300 animate-pulse" />
                     </TableCell>
                     <TableCell>
-                      <Skeleton className="h-6 w-20 bg-gray-200 animate-pulse" />
+                      <Skeleton className="h-6 w-20 bg-gray-300 animate-pulse" />
                     </TableCell>
                     <TableCell>
-                      <Skeleton className="h-4 w-24 bg-gray-200 animate-pulse" />
+                      <Skeleton className="h-4 w-24 bg-gray-300 animate-pulse" />
                     </TableCell>
                     <TableCell>
-                      <Skeleton className="h-4 w-24 bg-gray-200 animate-pulse" />
+                      <Skeleton className="h-4 w-24 bg-gray-300 animate-pulse" />
                     </TableCell>
                     <TableCell>
-                      <Skeleton className="h-6 w-16 bg-gray-200 animate-pulse" />
+                      <Skeleton className="h-6 w-16 bg-gray-300 animate-pulse" />
                     </TableCell>
                     <TableCell>
-                      <Skeleton className="h-8 w-8 bg-gray-200 animate-pulse" />
+                      <div className="flex gap-2">
+                        <Skeleton className="h-8 w-8 bg-gray-300 animate-pulse" />
+                        <Skeleton className="h-8 w-8 bg-gray-300 animate-pulse" />
+                        <Skeleton className="h-8 w-8 bg-gray-300 animate-pulse" />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -982,40 +988,32 @@ export default function UserManagement() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 cursor-pointer text-gray-400 hover:text-gray-700 hover:bg-gray-100"
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => setViewUser(user)}
-                            className="cursor-pointer"
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleEditOpen(user)}
-                            className="cursor-pointer"
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setDeleteUserId(user.id)}
-                            className="cursor-pointer text-red-600"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 cursor-pointer"
+                          onClick={() => setViewUser(user)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-gray-400 hover:text-green-600 hover:bg-green-50 cursor-pointer"
+                          onClick={() => handleEditOpen(user)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                          onClick={() => setDeleteUserId(user.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -1042,17 +1040,17 @@ export default function UserManagement() {
               >
                 <CardHeader className="space-y-2">
                   <div className="flex items-center space-x-3">
-                    <Skeleton className="h-12 w-12 rounded-full bg-gray-200 animate-pulse" />
+                    <Skeleton className="h-12 w-12 rounded-full bg-gray-300 animate-pulse" />
                     <div className="space-y-2">
-                      <Skeleton className="h-4 w-24 bg-gray-200 animate-pulse" />
-                      <Skeleton className="h-3 w-32 bg-gray-200 animate-pulse" />
+                      <Skeleton className="h-4 w-24 bg-gray-300 animate-pulse" />
+                      <Skeleton className="h-3 w-32 bg-gray-300 animate-pulse" />
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="flex justify-between items-center">
-                    <Skeleton className="h-5 w-16 bg-gray-200 animate-pulse" />
-                    <Skeleton className="h-5 w-16 bg-gray-200 animate-pulse" />
+                    <Skeleton className="h-5 w-16 bg-gray-300 animate-pulse" />
+                    <Skeleton className="h-5 w-16 bg-gray-300 animate-pulse" />
                   </div>
                 </CardContent>
               </Card>

@@ -599,11 +599,11 @@ export default function EditorialManagement() {
               <FormLabel>Category</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
+                <SelectContent className="min-w-full w-auto">
                   {categories
                     .filter((cat) => cat !== "All")
                     .map((category) => (
@@ -627,11 +627,11 @@ export default function EditorialManagement() {
               <FormLabel>Status</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
+                <SelectContent className="w-full">
                   <SelectItem value="Published">Published</SelectItem>
                   <SelectItem value="Draft">Draft</SelectItem>
                 </SelectContent>
@@ -752,7 +752,7 @@ export default function EditorialManagement() {
         className="space-y-6 mx-4"
       >
         {/* Current Cover Preview */}
-        {editingEditorial && (
+        {/* {editingEditorial && (
           <div className="space-y-3">
             <Label className="text-sm font-medium">Current Cover</Label>
             <div className="relative aspect-[3/4] w-32 bg-gray-100 rounded-lg overflow-hidden group">
@@ -775,7 +775,7 @@ export default function EditorialManagement() {
               </Button>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* New Cover Upload */}
         <FormField
@@ -840,11 +840,11 @@ export default function EditorialManagement() {
                 <FormLabel>Category</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
+                  <SelectContent className="w-full">
                     {categories
                       .filter((cat) => cat !== "All")
                       .map((category) => (
@@ -866,11 +866,11 @@ export default function EditorialManagement() {
                 <FormLabel>Status</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
+                  <SelectContent className="w-full">
                     <SelectItem value="Published">Published</SelectItem>
                     <SelectItem value="Draft">Draft</SelectItem>
                   </SelectContent>
@@ -994,10 +994,10 @@ export default function EditorialManagement() {
               value={selectedCategory}
               onValueChange={setSelectedCategory}
             >
-              <SelectTrigger className="mt-1 ">
+              <SelectTrigger className="mt-1 w-full">
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="w-full">
                 {categories.map((category) => (
                   <SelectItem key={category} value={category}>
                     {category}
@@ -1010,10 +1010,10 @@ export default function EditorialManagement() {
           <div className="w-full sm:w-48">
             <Label className="text-sm font-medium">Status</Label>
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="mt-1 ">
+              <SelectTrigger className="mt-1 w-full">
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="w-full">
                 {statusOptions.map((status) => (
                   <SelectItem key={status} value={status}>
                     {status}
@@ -1113,13 +1113,13 @@ export default function EditorialManagement() {
           <Table>
             <TableHeader>
               <TableRow className=" hover:bg-gray-100">
-                <TableHead className="w-2">Cover</TableHead>
-                <TableHead>Title</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Size</TableHead>
-                <TableHead className="w-32">Actions</TableHead>
+                <TableHead className="w-2 text-gray-700">Cover</TableHead>
+                <TableHead className="text-gray-700">Title</TableHead>
+                <TableHead className="text-gray-700">Category</TableHead>
+                <TableHead className="text-gray-700">Date</TableHead>
+                <TableHead className="text-gray-700">Status</TableHead>
+                <TableHead className="text-gray-700">Size</TableHead>
+                <TableHead className="w-32 text-gray-700 text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1127,28 +1127,30 @@ export default function EditorialManagement() {
                 Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={index} className="border-gray-300">
                     <TableCell>
-                      <Skeleton className="h-16 w-12  animate-pulse" />
+                      <Skeleton className="h-16 w-12 bg-gray-300 animate-pulse" />
                     </TableCell>
                     <TableCell>
-                      <Skeleton className="h-4 w-32  animate-pulse" />
+                      <Skeleton className="h-4 w-32 bg-gray-300 animate-pulse" />
                     </TableCell>
                     <TableCell>
-                      <Skeleton className="h-4 w-24  animate-pulse" />
+                      <Skeleton className="h-4 w-24 bg-gray-300 animate-pulse" />
                     </TableCell>
                     <TableCell>
-                      <Skeleton className="h-4 w-20  animate-pulse" />
+                      <Skeleton className="h-4 w-20 bg-gray-300 animate-pulse" />
                     </TableCell>
                     <TableCell>
-                      <Skeleton className="h-4 w-20  animate-pulse" />
+                      <Skeleton className="h-4 w-20 bg-gray-300 animate-pulse" />
                     </TableCell>
                     <TableCell>
-                      <Skeleton className="h-4 w-16  animate-pulse" />
+                      <Skeleton className="h-4 w-16 bg-gray-300 animate-pulse" />
                     </TableCell>
                     <TableCell>
-                      <Skeleton className="h-6 w-20  animate-pulse" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-8 w-8  animate-pulse" />
+                      <div className="flex gap-2">
+                        <Skeleton className="h-8 w-8 bg-gray-300 animate-pulse" />
+                        <Skeleton className="h-8 w-8 bg-gray-300 animate-pulse" />
+                        <Skeleton className="h-8 w-8  bg-gray-300 animate-pulse" />
+                        <Skeleton className="h-8 w-8 bg-gray-300 animate-pulse" />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -1159,7 +1161,7 @@ export default function EditorialManagement() {
                     className="border-gray-300 hover:bg-gray-100"
                   >
                     <TableCell>
-                      <div className="aspect-[3/4] w-12  rounded overflow-hidden">
+                      <div className="aspect-[3/4] w-12 rounded overflow-hidden">
                         <img
                           src={editorial.cover_image_url || "/placeholder.svg"}
                           alt={editorial.title}
@@ -1168,7 +1170,7 @@ export default function EditorialManagement() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <p className="font-medium ">{editorial.title}</p>
+                      <p className="font-medium">{editorial.title}</p>
                     </TableCell>
                     <TableCell>
                       <Badge className="bg-blue-600 hover:bg-blue-700">
@@ -1183,7 +1185,7 @@ export default function EditorialManagement() {
                         className={
                           editorial.status === "Published"
                             ? "bg-green-600 hover:bg-green-700"
-                            : " hover:bg-gray-300"
+                            : "hover:bg-gray-300"
                         }
                       >
                         {editorial.status}
@@ -1191,44 +1193,43 @@ export default function EditorialManagement() {
                     </TableCell>
                     <TableCell>{editorial.size_mb} MB</TableCell>
                     <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 cursor-pointer text-gray-400 hover:bg-gray-200"
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => setPreviewEditorial(editorial)}
-                            className="cursor-pointer"
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            View PDF
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer">
-                            <Download className="h-4 w-4 mr-2" />
-                            Download
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleEditOpen(editorial)}
-                            className="cursor-pointer"
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setDeleteEditorialId(editorial.id)}
-                            className="cursor-pointer"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 cursor-pointer"
+                          onClick={() => setPreviewEditorial(editorial)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 cursor-pointer"
+                          onClick={() => {
+                            // Add download logic here
+                            console.log("Download:", editorial.title);
+                          }}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-gray-400 hover:text-green-600 hover:bg-green-50 cursor-pointer"
+                          onClick={() => handleEditOpen(editorial)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                          onClick={() => setDeleteEditorialId(editorial.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -1250,16 +1251,16 @@ export default function EditorialManagement() {
           {isLoading ? (
             Array.from({ length: 8 }).map((_, index) => (
               <Card key={index} className="overflow-hidden border-gray-300">
-                <Skeleton className="aspect-[3/4] w-full  animate-pulse" />
+                <Skeleton className="aspect-[3/4] w-full bg-gray-300  animate-pulse" />
                 <CardHeader className="space-y-2">
-                  <Skeleton className="h-4 w-3/4  animate-pulse" />
-                  <Skeleton className="h-3 w-full  animate-pulse" />
-                  <Skeleton className="h-3 w-2/3  animate-pulse" />
+                  <Skeleton className="h-4 w-3/4  bg-gray-300 animate-pulse" />
+                  <Skeleton className="h-3 w-full bg-gray-300  animate-pulse" />
+                  <Skeleton className="h-3 w-2/3 bg-gray-300 animate-pulse" />
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="flex justify-between items-center">
-                    <Skeleton className="h-5 w-16  animate-pulse" />
-                    <Skeleton className="h-3 w-20  animate-pulse" />
+                    <Skeleton className="h-5 w-16 bg-gray-300 animate-pulse" />
+                    <Skeleton className="h-3 w-20 bg-gray-300  animate-pulse" />
                   </div>
                 </CardContent>
               </Card>
@@ -1498,9 +1499,9 @@ export default function EditorialManagement() {
               </div>
               <div className="border rounded-lg overflow-hidden bg-gray-50">
                 <div className="flex justify-between items-center p-4 border-b bg-white">
-                  <span className="text-sm font-medium">
+                  {/* <span className="text-sm font-medium">
                     Page {pageNumber} of {numPages || "?"}
-                  </span>
+                  </span> */}
                   <div className="flex gap-2">
                     <Button
                       variant="outline"

@@ -1094,10 +1094,10 @@ export default function MagazineManagement() {
               value={selectedCategory}
               onValueChange={setSelectedCategory}
             >
-              <SelectTrigger className="mt-1">
+              <SelectTrigger className="mt-1 w-full">
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="w-full">
                 {categories.map((category) => (
                   <SelectItem key={category} value={category}>
                     {category}
@@ -1109,10 +1109,10 @@ export default function MagazineManagement() {
           <div className="w-full sm:w-48">
             <Label className="text-sm font-medium">Status</Label>
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="mt-1">
+              <SelectTrigger className="mt-1 w-full">
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="w-full">
                 {statusOptions.map((status) => (
                   <SelectItem key={status} value={status}>
                     {status}
@@ -1356,15 +1356,17 @@ export default function MagazineManagement() {
           <div className="border rounded-lg overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="w-20">Cover</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Edition</TableHead>
-                  <TableHead>Year</TableHead>
-                  <TableHead>Size</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Upload Date</TableHead>
-                  <TableHead className="w-32">Actions</TableHead>
+                <TableRow className="bg-gray-50 hover:bg-gray-100">
+                  <TableHead className="w-20 text-gray-700">Cover</TableHead>
+                  <TableHead className="text-gray-700">Title</TableHead>
+                  <TableHead className="text-gray-700">Edition</TableHead>
+                  <TableHead className="text-gray-700">Year</TableHead>
+                  <TableHead className="text-gray-700">Size</TableHead>
+                  <TableHead className="text-gray-700">Status</TableHead>
+                  <TableHead className="v">Upload Date</TableHead>
+                  <TableHead className="w-32 text-center text-gray-700">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1393,7 +1395,12 @@ export default function MagazineManagement() {
                         <Skeleton className="h-4 w-20 bg-gray-300 dark:bg-gray-800 animate-pulse" />
                       </TableCell>
                       <TableCell>
-                        <Skeleton className="h-8 w-8 bg-gray-300 dark:bg-gray-800 animate-pulse" />
+                        <div className="flex gap-2">
+                          <Skeleton className="h-8 w-8 bg-gray-300 dark:bg-gray-800 animate-pulse" />
+                          <Skeleton className="h-8 w-8 bg-gray-300 dark:bg-gray-800 animate-pulse" />
+                          <Skeleton className="h-8 w-8 bg-gray-300 dark:bg-gray-800 animate-pulse" />
+                          <Skeleton className="h-8 w-8 bg-gray-300 dark:bg-gray-800 animate-pulse" />
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -1434,44 +1441,43 @@ export default function MagazineManagement() {
                         {format(new Date(magazine.upload_date), "MMM dd, yyyy")}
                       </TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 cursor-pointer"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => setPreviewMagazine(magazine)}
-                              className="cursor-pointer"
-                            >
-                              <Eye className="h-4 w-4 mr-2" />
-                              View PDF
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="cursor-pointer">
-                              <Download className="h-4 w-4 mr-2" />
-                              Download
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleEditOpen(magazine)}
-                              className="cursor-pointer"
-                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setDeleteMagazineId(magazine.id)}
-                              className="cursor-pointer"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 cursor-pointer"
+                            onClick={() => setPreviewMagazine(magazine)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50  cursor-pointer"
+                            onClick={() => {
+                              // Add download logic here
+                              console.log("Download:", magazine.title);
+                            }}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-gray-400  hover:text-green-600 hover:bg-green-50 cursor-pointer"
+                            onClick={() => handleEditOpen(magazine)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                            onClick={() => setDeleteMagazineId(magazine.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
