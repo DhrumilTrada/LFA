@@ -85,7 +85,7 @@ async function bootstrap() {
 
   // Use new stream in express
 
-  await app.listen(appConfig.port || 3001)
+  await app.listen(appConfig.port || 3001, '0.0.0.0')
 }
 bootstrap()
 
