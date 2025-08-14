@@ -7,6 +7,7 @@ import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -90,114 +91,53 @@ import {
   Download,
   FileText,
   BookOpen,
+  HardDrive,
+  Users,
+  Calendar as CalendarIcon2,
 } from "lucide-react";
 import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/app/store";
+import { getMagazines, createMagazine, updateMagazine, deleteMagazine } from "@/features/magazine/magazineThunks";
+import { Magazine } from "@/features/magazine/magazineSlice";
 
 // Set up PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.mjs";
 
-// Mock data for magazines - simplified to match schema
-const mockMagazines = [
-  {
-    id: 1,
-    title: "Creative Expressions",
-    edition: "Volume 5, Issue 2",
-    year: 2024,
-    file_url: "/magazine/Attitude is Everything by Jeff Keller.pdf",
-    cover_image_url: "/placeholder.svg?height=400&width=300",
-    size_mb: 12.4,
-    status: "Published",
-    upload_date: "2024-03-15",
-  },
-  {
-    id: 2,
-    title: "Artistic Horizons",
-    edition: "Volume 5, Issue 1",
-    year: 2024,
-    file_url: "/placeholder.pdf",
-    cover_image_url: "/placeholder.svg?height=400&width=300",
-    size_mb: 10.8,
-    status: "Published",
-    upload_date: "2024-01-20",
-  },
-  {
-    id: 3,
-    title: "Literary Landscapes",
-    edition: "Volume 4, Issue 4",
-    year: 2023,
-    file_url: "/placeholder.pdf",
-    cover_image_url: "/placeholder.svg?height=400&width=300",
-    size_mb: 11.2,
-    status: "Published",
-    upload_date: "2023-12-10",
-  },
-  {
-    id: 4,
-    title: "Tech Innovations",
-    edition: "Volume 3, Issue 6",
-    year: 2025,
-    file_url: "/placeholder.pdf",
-    cover_image_url: "/placeholder.svg?height=400&width=300",
-    size_mb: 15.6,
-    status: "Draft",
-    upload_date: "2023-11-05",
-  },
-  {
-    id: 5,
-    title: "Nature Chronicles",
-    edition: "Volume 2, Issue 3",
-    year: 2023,
-    file_url: "/placeholder.pdf",
-    cover_image_url: "/placeholder.svg?height=400&width=300",
-    size_mb: 18.9,
-    status: "Published",
-    upload_date: "2023-09-18",
-  },
+const statusOptions = [
+  { label: "All", value: "All" },
+  { label: "Draft", value: "draft" },
+  { label: "Published", value: "published" },
+  { label: "Archived", value: "archived" },
 ];
-
-const categories = [
-  "All",
-  "Art & Design",
-  "Literature",
-  "Technology",
-  "Nature",
-  "Science",
-  "Business",
-  "Lifestyle",
-];
-
-const statusOptions = ["All", "Published", "Draft", "Archived"];
-
-interface MagazineData {
-  id: number;
-  title: string;
-  edition: string;
-  year: number;
-  file_url: string;
-  cover_image_url: string;
-  size_mb: number;
-  status: string;
-  upload_date: string;
-}
 
 const uploadSchema = z.object({
   title: z
     .string()
     .min(1, "Title is required")
     .max(100, "Title must be less than 100 characters"),
-  edition: z
+  issueNumber: z
     .string()
-    .min(1, "Edition is required")
-    .max(50, "Edition must be less than 50 characters"),
+    .min(1, "Issue number is required")
+    .max(50, "Issue number must be less than 50 characters"),
+  editor: z
+    .string()
+    .min(1, "Editor is required")
+    .max(100, "Editor must be less than 100 characters"),
+  status: z.enum(["draft", "published", "archived"]),
+  description: z
+    .string()
+    .max(500, "Description must be less than 500 characters")
+    .optional(),
   year: z
     .number()
     .min(1900, "Year must be valid")
     .max(2100, "Year must be valid"),
-  cover: z
+  image: z
     .any()
     .refine((file) => file instanceof File, "Cover image is required"),
   pdf: z.any().refine((file) => file instanceof File, "PDF file is required"),
@@ -208,15 +148,24 @@ const editSchema = z.object({
     .string()
     .min(1, "Title is required")
     .max(100, "Title must be less than 100 characters"),
-  edition: z
+  issueNumber: z
     .string()
-    .min(1, "Edition is required")
-    .max(50, "Edition must be less than 50 characters"),
+    .min(1, "Issue number is required")
+    .max(50, "Issue number must be less than 50 characters"),
+  editor: z
+    .string()
+    .min(1, "Editor is required")
+    .max(100, "Editor must be less than 100 characters"),
+  status: z.enum(["draft", "published", "archived"]),
+  description: z
+    .string()
+    .max(500, "Description must be less than 500 characters")
+    .optional(),
   year: z
     .number()
     .min(1900, "Year must be valid")
     .max(2100, "Year must be valid"),
-  cover: z.any().optional(),
+  image: z.any().optional(),
   pdf: z.any().optional(),
 });
 
@@ -224,25 +173,20 @@ type UploadFormData = z.infer<typeof uploadSchema>;
 type EditFormData = z.infer<typeof editSchema>;
 
 export default function MagazineManagement() {
+  const dispatch = useDispatch<AppDispatch>();
+  const { magazines, loading, error } = useSelector((state: RootState) => state.magazine);
+
   const [searchTitle, setSearchTitle] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const [isLoading, setIsLoading] = useState(true);
-  const [magazines, setMagazines] = useState<MagazineData[]>(mockMagazines);
-  const [filteredMagazines, setFilteredMagazines] =
-    useState<MagazineData[]>(mockMagazines);
+  const [filteredMagazines, setFilteredMagazines] = useState<Magazine[]>([]);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [previewMagazine, setPreviewMagazine] = useState<MagazineData | null>(
-    null
-  );
-  const [editingMagazine, setEditingMagazine] = useState<MagazineData | null>(
-    null
-  );
-  const [deleteMagazineId, setDeleteMagazineId] = useState<number | null>(null);
+  const [previewMagazine, setPreviewMagazine] = useState<Magazine | null>(null);
+  const [editingMagazine, setEditingMagazine] = useState<Magazine | null>(null);
+  const [deleteMagazineId, setDeleteMagazineId] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
-  const [editCoverPreview, setEditCoverPreview] = useState<string | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "table">("table");
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
@@ -252,12 +196,11 @@ export default function MagazineManagement() {
     resolver: zodResolver(uploadSchema),
     defaultValues: {
       title: "",
-      edition: "",
+      issueNumber: "",
+      editor: "",
+      status: "draft",
+      description: "",
       year: new Date().getFullYear(),
-      // category: "Art & Design",
-      // status: "Draft",
-      // author: "",
-      // issn: "",
     },
   });
 
@@ -265,82 +208,82 @@ export default function MagazineManagement() {
     resolver: zodResolver(editSchema),
     defaultValues: {
       title: "",
-      edition: "",
+      issueNumber: "",
+      editor: "",
+      status: "draft",
+      description: "",
       year: new Date().getFullYear(),
-      // category: "Art & Design",
-      // status: "Draft",
-      // author: "",
-      // issn: "",
     },
   });
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setMagazines(mockMagazines);
-      setFilteredMagazines(mockMagazines);
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
+    dispatch(getMagazines({}));
+  }, [dispatch]);
+
+  useEffect(() => {
+    setFilteredMagazines(magazines);
+  }, [magazines]);
 
   // Calculate statistics
   const stats = {
     total: magazines.length,
-    thisYear: magazines.filter((m) => m.year === new Date().getFullYear()),
-    published: magazines.filter((m) => m.status === "Published").length,
+    thisYear: magazines.filter((m) => m.year === new Date().getFullYear()).length,
+    published: magazines.filter((m) => m.status === "published").length,
     totalSize: magazines
       .reduce((acc, m) => {
-        const size = m.size_mb;
+        const size = m.size || 0;
         return acc + size;
       }, 0)
-      .toFixed(1),
+      .toPrecision(2),
+  };
+
+  // Helper function to get status display name and color
+  const getStatusInfo = (status: string) => {
+    switch (status) {
+      case "published":
+        return { label: "Published", color: "bg-green-100 text-green-800" };
+      case "draft":
+        return { label: "Draft", color: "bg-yellow-100 text-yellow-800" };
+      case "archived":
+        return { label: "Archived", color: "bg-gray-100 text-gray-800" };
+      default:
+        return { label: status, color: "bg-gray-100 text-gray-800" };
+    }
   };
 
   // Handle search and filtering
   const handleSearch = useCallback(() => {
-    setIsLoading(true);
-    setTimeout(() => {
-      let filtered = magazines;
+    let filtered = magazines;
 
-      if (searchTitle.trim()) {
-        filtered = filtered.filter(
-          (mag) =>
-            mag.title.toLowerCase().includes(searchTitle.toLowerCase()) ||
-            mag.title.toLowerCase().includes(searchTitle.toLowerCase())
-        );
-      }
+    if (searchTitle.trim()) {
+      filtered = filtered.filter(
+        (mag) =>
+          mag.title.toLowerCase().includes(searchTitle.toLowerCase()) ||
+          mag.issueNumber.toLowerCase().includes(searchTitle.toLowerCase()) ||
+          mag.editor.toLowerCase().includes(searchTitle.toLowerCase())
+      );
+    }
 
-      if (selectedCategory !== "All") {
-        filtered = filtered.filter((mag) => mag.title === selectedCategory);
-      }
+    if (selectedStatus !== "All") {
+      filtered = filtered.filter((mag) => mag.status === selectedStatus);
+    }
 
-      if (selectedStatus !== "All") {
-        filtered = filtered.filter((mag) => mag.status === selectedStatus);
-      }
+    if (dateRange?.from && dateRange?.to) {
+      filtered = filtered.filter((mag) => {
+        const magDate = new Date(mag.uploadedAt);
+        return magDate >= dateRange.from! && magDate <= dateRange.to!;
+      });
+    }
 
-      if (dateRange?.from && dateRange?.to) {
-        filtered = filtered.filter((mag) => {
-          const magDate = new Date(mag.upload_date);
-          return magDate >= dateRange.from! && magDate <= dateRange.to!;
-        });
-      }
-
-      setFilteredMagazines(filtered);
-      setIsLoading(false);
-    }, 800);
-  }, [searchTitle, selectedCategory, selectedStatus, dateRange, magazines]);
+    setFilteredMagazines(filtered);
+  }, [searchTitle, selectedStatus, dateRange, magazines]);
 
   // Handle reset filters
   const handleReset = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setSearchTitle("");
-      setSelectedCategory("All");
-      setSelectedStatus("All");
-      setDateRange(undefined);
-      setFilteredMagazines(magazines);
-      setIsLoading(false);
-    }, 1500);
+    setSearchTitle("");
+    setSelectedStatus("All");
+    setDateRange(undefined);
+    setFilteredMagazines(magazines);
   };
 
   // Handle drag and drop
@@ -355,7 +298,7 @@ export default function MagazineManagement() {
   }, []);
 
   const handleDrop = useCallback(
-    (e: React.DragEvent, fileType: "cover" | "pdf", isEdit = false) => {
+    (e: React.DragEvent, fileType: "image" | "pdf", isEdit = false) => {
       e.preventDefault();
       e.stopPropagation();
       setDragActive(false);
@@ -364,10 +307,10 @@ export default function MagazineManagement() {
         const file = e.dataTransfer.files[0];
         const form = isEdit ? editForm : uploadForm;
 
-        if (fileType === "cover" && file.type.startsWith("image/")) {
-          form.setValue("cover", file);
+        if (fileType === "image" && file.type.startsWith("image/")) {
+          form.setValue("image", file);
           if (isEdit) {
-            setEditCoverPreview(URL.createObjectURL(file));
+            setEditImagePreview(URL.createObjectURL(file));
           }
         } else if (fileType === "pdf" && file.type === "application/pdf") {
           form.setValue("pdf", file);
@@ -380,7 +323,7 @@ export default function MagazineManagement() {
   // Handle file input change
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    fileType: "cover" | "pdf",
+    fileType: "image" | "pdf",
     isEdit = false
   ) => {
     if (e.target.files && e.target.files[0]) {
@@ -388,30 +331,33 @@ export default function MagazineManagement() {
       const form = isEdit ? editForm : uploadForm;
 
       form.setValue(fileType, file);
-      if (fileType === "cover" && isEdit) {
-        setEditCoverPreview(URL.createObjectURL(file));
+      if (fileType === "image" && isEdit) {
+        setEditImagePreview(URL.createObjectURL(file));
       }
     }
   };
 
   // Handle upload save
-  const handleUploadSave = (data: UploadFormData) => {
-    const newMagazine: MagazineData = {
-      id: Date.now(),
+  const handleUploadSave = async (data: UploadFormData) => {
+    const magazineData = {
       title: data.title,
-      edition: data.edition,
+      issueNumber: data.issueNumber,
+      editor: data.editor,
+      status: data.status,
+      description: data.description || "",
       year: data.year,
-      file_url: URL.createObjectURL(data.pdf),
-      cover_image_url: URL.createObjectURL(data.cover),
-      size_mb: Number.parseFloat((Math.random() * 20 + 5).toFixed(1)),
-      status: "Draft",
-      upload_date: new Date().toISOString().split("T")[0],
+      image: data.image,
+      pdf: data.pdf,
+      uploadedAt: new Date().toISOString(),
     };
 
-    setMagazines((prev) => [newMagazine, ...prev]);
-    setFilteredMagazines((prev) => [newMagazine, ...prev]);
-    uploadForm.reset();
-    setIsUploadOpen(false);
+    const result = await dispatch(createMagazine(magazineData));
+    if (createMagazine.fulfilled.match(result)) {
+      uploadForm.reset();
+      setIsUploadOpen(false);
+      // Refresh magazines after successful creation
+      dispatch(getMagazines({}));
+    }
   };
 
   // Handle upload cancel
@@ -421,66 +367,76 @@ export default function MagazineManagement() {
   };
 
   // Handle edit open
-  const handleEditOpen = (magazine: MagazineData) => {
+  const handleEditOpen = (magazine: Magazine) => {
     setEditingMagazine(magazine);
-    setEditCoverPreview(null);
+    setEditImagePreview(null);
     editForm.reset({
       title: magazine.title,
-      edition: magazine.edition,
+      issueNumber: magazine.issueNumber,
+      editor: magazine.editor,
+      status: magazine.status,
+      description: magazine.description || "",
       year: magazine.year,
-      // category: magazine.category,
-      // status: magazine.status,
-      // author: magazine.author,
-      // issn: magazine.issn,
     });
     setIsEditOpen(true);
   };
 
   // Handle edit save
-  const handleEditSave = (data: EditFormData) => {
+  const handleEditSave = async (data: EditFormData) => {
     if (!editingMagazine) return;
 
-    const updatedMagazine: MagazineData = {
-      ...editingMagazine,
+    const updateData: any = {
       title: data.title,
-      edition: data.edition,
+      issueNumber: data.issueNumber,
+      editor: data.editor,
+      status: data.status,
+      description: data.description,
       year: data.year,
-      // category: data.category,
-      // status: data.status,
-      // author: data.author,
-      // issn: data.issn,
-      cover_image_url: editCoverPreview || editingMagazine.cover_image_url,
-      file_url: data.pdf
-        ? URL.createObjectURL(data.pdf)
-        : editingMagazine.file_url,
     };
 
-    setMagazines((prev) =>
-      prev.map((mag) => (mag.id === editingMagazine.id ? updatedMagazine : mag))
-    );
-    setFilteredMagazines((prev) =>
-      prev.map((mag) => (mag.id === editingMagazine.id ? updatedMagazine : mag))
-    );
+    if (data.image) {
+      updateData.image = data.image;
+    }
+    if (data.pdf) {
+      updateData.pdf = data.pdf;
+    }
 
-    editForm.reset();
-    setEditingMagazine(null);
-    setEditCoverPreview(null);
-    setIsEditOpen(false);
+    const result = await dispatch(updateMagazine({
+      id: editingMagazine._id || editingMagazine.id || "",
+      data: updateData
+    }));
+
+    if (updateMagazine.fulfilled.match(result)) {
+      editForm.reset();
+      setEditingMagazine(null);
+      setEditImagePreview(null);
+      setIsEditOpen(false);
+      // Refresh magazines after successful update
+      dispatch(getMagazines({}));
+    }
   };
 
   // Handle edit cancel
   const handleEditCancel = () => {
     editForm.reset();
     setEditingMagazine(null);
-    setEditCoverPreview(null);
+    setEditImagePreview(null);
     setIsEditOpen(false);
   };
 
+  // Handle delete current image in edit mode
+  const handleDeleteCurrentImage = () => {
+    setEditImagePreview("/file.svg?height=300&width=400");
+  };
+
   // Handle delete
-  const handleDelete = (id: number) => {
-    setMagazines((prev) => prev.filter((mag) => mag.id !== id));
-    setFilteredMagazines((prev) => prev.filter((mag) => mag.id !== id));
-    setDeleteMagazineId(null);
+  const handleDelete = async (id: string) => {
+    const result = await dispatch(deleteMagazine(id));
+    if (deleteMagazine.fulfilled.match(result)) {
+      setDeleteMagazineId(null);
+      // Refresh magazines after successful deletion
+      dispatch(getMagazines({}));
+    }
   };
 
   // PDF viewer functions
@@ -492,32 +448,34 @@ export default function MagazineManagement() {
   const isFilterActive = useCallback(() => {
     return (
       searchTitle.trim() !== "" ||
-      selectedCategory !== "All" ||
       selectedStatus !== "All" ||
       (dateRange?.from && dateRange?.to)
     );
-  }, [searchTitle, selectedCategory, selectedStatus, dateRange]);
+  }, [searchTitle, selectedStatus, dateRange]);
 
   // Render file upload area
   const renderFileUploadArea = (
-    fileType: "cover" | "pdf",
+    fileType: "image" | "pdf",
     isEdit = false,
     currentFile?: string
   ) => {
-    const accept = fileType === "cover" ? "image/*" : "application/pdf";
-    const label = fileType === "cover" ? "Cover Image" : "PDF File";
-    const icon = fileType === "cover" ? Upload : FileText;
+    const accept = fileType === "image" ? "image/*" : "application/pdf";
+    const label = fileType === "image" ? "Cover Image" : "PDF File";
+    const icon = fileType === "image" ? Upload : FileText;
     const IconComponent = icon;
 
     return (
       <div className="space-y-3">
         <Label className="text-sm font-medium">{label}</Label>
-        {isEdit && currentFile && fileType === "cover" && (
+        {isEdit && currentFile && fileType === "image" && (
           <div className="relative aspect-[3/4] w-32 bg-gray-100 rounded-lg overflow-hidden group">
             <img
-              src={editCoverPreview || currentFile}
+              src={editImagePreview || `${process.env.NEXT_PUBLIC_API_BASE_URL}${currentFile}`}
               alt="Current cover"
               className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = "/file.svg?height=400&width=300";
+              }}
             />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200" />
             <Button
@@ -525,9 +483,7 @@ export default function MagazineManagement() {
               variant="destructive"
               size="icon"
               className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-              onClick={() =>
-                setEditCoverPreview("/placeholder.svg?height=400&width=300")
-              }
+              onClick={handleDeleteCurrentImage}
             >
               <X className="h-3 w-3" />
             </Button>
@@ -546,7 +502,7 @@ export default function MagazineManagement() {
         >
           <IconComponent className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
           <p className="text-sm text-muted-foreground mb-3">
-            Drag and drop {fileType === "cover" ? "an image" : "a PDF"} here, or
+            Drag and drop {fileType === "image" ? "an image" : "a PDF"} here, or
             click to select
           </p>
           <input
@@ -579,7 +535,7 @@ export default function MagazineManagement() {
     <Form {...uploadForm}>
       <form
         onSubmit={uploadForm.handleSubmit(handleUploadSave)}
-        className="space-y-4"
+        className="space-y-6 mx-4"
       >
         {/* Title */}
         <FormField
@@ -600,16 +556,78 @@ export default function MagazineManagement() {
           )}
         />
 
-        {/* Edition */}
+        {/* Issue Number */}
         <FormField
           control={uploadForm.control}
-          name="edition"
+          name="issueNumber"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Edition *</FormLabel>
+              <FormLabel>Issue Number *</FormLabel>
               <FormControl>
                 <Input
                   placeholder="e.g., Volume 5, Issue 2"
+                  {...field}
+                  className="focus-visible:ring-2 focus-visible:ring-primary"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Editor */}
+        <FormField
+          control={uploadForm.control}
+          name="editor"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Editor *</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="e.g., John Doe"
+                  {...field}
+                  className="focus-visible:ring-2 focus-visible:ring-primary"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Status */}
+        <FormField
+          control={uploadForm.control}
+          name="status"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Status *</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="published">Published</SelectItem>
+                  <SelectItem value="archived">Archived</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Description */}
+        <FormField
+          control={uploadForm.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Enter magazine description (optional)"
                   {...field}
                   className="focus-visible:ring-2 focus-visible:ring-primary"
                 />
@@ -645,39 +663,11 @@ export default function MagazineManagement() {
         {/* Cover Image Upload */}
         <FormField
           control={uploadForm.control}
-          name="cover"
+          name="image"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Cover Image *</FormLabel>
               <FormControl>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                  <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                  <p className="text-sm text-gray-600 mb-2">
-                    Upload cover image
-                  </p>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleFileChange(e, "cover", false)}
-                    className="hidden"
-                    id="cover-upload"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      document.getElementById("cover-upload")?.click()
-                    }
-                  >
-                    Choose Image
-                  </Button>
-                  {field.value && (
-                    <p className="text-xs text-green-600 mt-2">
-                      Selected: {field.value.name}
-                    </p>
-                  )}
-                </div>
+                <div>{renderFileUploadArea("image", false)}</div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -690,32 +680,14 @@ export default function MagazineManagement() {
           name="pdf"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>PDF File *</FormLabel>
               <FormControl>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                  <FileText className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                  <p className="text-sm text-gray-600 mb-2">Upload PDF file</p>
-                  <input
-                    type="file"
-                    accept="application/pdf"
-                    onChange={(e) => handleFileChange(e, "pdf", false)}
-                    className="hidden"
-                    id="pdf-upload"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      document.getElementById("pdf-upload")?.click()
-                    }
-                  >
-                    Choose PDF
-                  </Button>
-                  {field.value && (
-                    <p className="text-xs text-green-600 mt-2">
-                      Selected: {field.value.name}
-                    </p>
+                <div>
+                  {renderFileUploadArea("pdf", false)}
+                  {field.value instanceof File && (
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      <span className="font-medium">{field.value.name}</span>
+                      {" "}- {(field.value.size / 1024 / 1024).toPrecision(2)} MB
+                    </div>
                   )}
                 </div>
               </FormControl>
@@ -729,8 +701,9 @@ export default function MagazineManagement() {
           <Button
             type="submit"
             className="flex-1 bg-blue-600 hover:bg-blue-700"
+            disabled={loading}
           >
-            Upload Magazine
+            {loading ? "Uploading..." : "Upload Magazine"}
           </Button>
           <Button
             type="button"
@@ -753,14 +726,17 @@ export default function MagazineManagement() {
         className="space-y-6 mx-4"
       >
         {/* Current Cover Preview */}
-        {editingMagazine && (
+        {editingMagazine?.image && (
           <div className="space-y-3">
             <Label className="text-sm font-medium">Current Cover</Label>
             <div className="relative aspect-[3/4] w-32 bg-gray-100 rounded-lg overflow-hidden group">
               <img
-                src={editCoverPreview || editingMagazine.cover_image_url}
+                src={editImagePreview || `${process.env.NEXT_PUBLIC_API_BASE_URL}${editingMagazine.image}`}
                 alt={editingMagazine.title}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = "/file.svg?height=400&width=300";
+                }}
               />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200" />
               <Button
@@ -768,9 +744,7 @@ export default function MagazineManagement() {
                 variant="destructive"
                 size="icon"
                 className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                onClick={() =>
-                  setEditCoverPreview("/placeholder.svg?height=400&width=300")
-                }
+                onClick={handleDeleteCurrentImage}
               >
                 <X className="h-3 w-3" />
               </Button>
@@ -781,15 +755,15 @@ export default function MagazineManagement() {
         {/* New Cover Upload */}
         <FormField
           control={editForm.control}
-          name="cover"
+          name="image"
           render={({ field }) => (
             <FormItem>
               <FormControl>
                 <div>
                   {renderFileUploadArea(
-                    "cover",
+                    "image",
                     true,
-                    editingMagazine?.cover_image_url
+                    editingMagazine?.image
                   )}
                 </div>
               </FormControl>
@@ -805,7 +779,15 @@ export default function MagazineManagement() {
           render={({ field }) => (
             <FormItem>
               <FormControl>
-                <div>{renderFileUploadArea("pdf", true)}</div>
+                <div>
+                  {renderFileUploadArea("pdf", true)}
+                  {field.value instanceof File && (
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      <span className="font-medium">{field.value.name}</span>
+                      {" "}- {(field.value.size / 1024 / 1024).toPrecision(2)} MB
+                    </div>
+                  )}
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -818,7 +800,7 @@ export default function MagazineManagement() {
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Title</FormLabel>
+              <FormLabel>Title *</FormLabel>
               <FormControl>
                 <Input
                   placeholder="Enter magazine title"
@@ -831,17 +813,16 @@ export default function MagazineManagement() {
           )}
         />
 
-        {/* Description */}
-        {/* <FormField
+        {/* Issue Number */}
+        <FormField
           control={editForm.control}
-          name="description"
+          name="issueNumber"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>Issue Number *</FormLabel>
               <FormControl>
-                <Textarea
-                  placeholder="Enter magazine description"
-                  rows={3}
+                <Input
+                  placeholder="e.g., Volume 5, Issue 2"
                   {...field}
                   className="focus-visible:ring-2 focus-visible:ring-primary"
                 />
@@ -849,156 +830,107 @@ export default function MagazineManagement() {
               <FormMessage />
             </FormItem>
           )}
-        /> */}
+        />
 
-        {/* Edition and Year */}
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={editForm.control}
-            name="edition"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Edition</FormLabel>
+        {/* Editor */}
+        <FormField
+          control={editForm.control}
+          name="editor"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Editor *</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="e.g., John Doe"
+                  {...field}
+                  className="focus-visible:ring-2 focus-visible:ring-primary"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Status */}
+        <FormField
+          control={editForm.control}
+          name="status"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Status *</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <Input
-                    placeholder="e.g., Volume 1, Issue 1"
-                    {...field}
-                    className="focus-visible:ring-2 focus-visible:ring-primary"
-                  />
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
                 </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="published">Published</SelectItem>
+                  <SelectItem value="archived">Archived</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-          <FormField
-            control={editForm.control}
-            name="year"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Year</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="2024"
-                    {...field}
-                    className="focus-visible:ring-2 focus-visible:ring-primary"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        {/* Description */}
+        <FormField
+          control={editForm.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Enter magazine description (optional)"
+                  {...field}
+                  className="focus-visible:ring-2 focus-visible:ring-primary"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-        {/* Category and Status */}
-        {/* <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={editForm.control}
-            name="category"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Category</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {categories
-                      .filter((cat) => cat !== "All")
-                      .map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={editForm.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Status</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {statusOptions
-                      .filter((status) => status !== "All")
-                      .map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {status}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div> */}
-
-        {/* Author and ISSN */}
-        {/* <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={editForm.control}
-            name="author"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Author/Publisher</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter author or publisher"
-                    {...field}
-                    className="focus-visible:ring-2 focus-visible:ring-primary"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={editForm.control}
-            name="issn"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>ISSN</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter ISSN"
-                    {...field}
-                    className="focus-visible:ring-2 focus-visible:ring-primary"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div> */}
+        {/* Year */}
+        <FormField
+          control={editForm.control}
+          name="year"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Year *</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  placeholder="e.g., 2024"
+                  {...field}
+                  onChange={(e) =>
+                    field.onChange(Number.parseInt(e.target.value))
+                  }
+                  className="focus-visible:ring-2 focus-visible:ring-primary"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pb-4">
+        <div className="flex gap-3 pt-4">
           <Button
             type="submit"
-            className="flex-1 bg-blue-600 hover:bg-blue-700 cursor-pointer"
+            className="flex-1 bg-blue-600 hover:bg-blue-700"
+            disabled={loading}
           >
-            Update Magazine
+            {loading ? "Updating..." : "Update Magazine"}
           </Button>
           <Button
             type="button"
             variant="outline"
             onClick={handleEditCancel}
-            className="flex-1 hover:bg-gray-300 cursor-pointer bg-transparent"
+            className="flex-1 bg-transparent"
           >
             Cancel
           </Button>
@@ -1050,7 +982,7 @@ export default function MagazineManagement() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-2xl font-bold">
-              {stats.thisYear.length}
+              {stats.thisYear}
             </CardTitle>
             <CardDescription>This Year</CardDescription>
           </CardHeader>
@@ -1066,7 +998,7 @@ export default function MagazineManagement() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-2xl font-bold">
-              {stats.totalSize} MB
+              {parseFloat((Number(stats.totalSize) / (1024 * 1024)).toPrecision(3))} MB
             </CardTitle>
             <CardDescription>Total Size</CardDescription>
           </CardHeader>
@@ -1089,24 +1021,6 @@ export default function MagazineManagement() {
             />
           </div>
           <div className="w-full sm:w-48">
-            <Label className="text-sm font-medium">Category</Label>
-            <Select
-              value={selectedCategory}
-              onValueChange={setSelectedCategory}
-            >
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="w-full sm:w-48">
             <Label className="text-sm font-medium">Status</Label>
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
               <SelectTrigger className="mt-1">
@@ -1114,8 +1028,8 @@ export default function MagazineManagement() {
               </SelectTrigger>
               <SelectContent>
                 {statusOptions.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {status}
+                  <SelectItem key={status.value} value={status.value}>
+                    {status.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -1254,21 +1168,19 @@ export default function MagazineManagement() {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <div className="space-y-1">
-                  {/* <p className="text-sm text-muted-foreground">{previewMagazine.description}</p> */}
+                  {previewMagazine.description && (
+                    <p className="text-sm text-muted-foreground">{previewMagazine.description}</p>
+                  )}
                   <div className="flex gap-4 text-xs text-muted-foreground">
-                    <span>{previewMagazine.edition}</span>
+                    <span>{previewMagazine.issueNumber}</span>
                     <span>{previewMagazine.year}</span>
-                    {/* <span>{previewMagazine.author}</span> */}
+                    <span>{previewMagazine.editor}</span>
                   </div>
                 </div>
                 <Badge
-                  variant={
-                    previewMagazine.status === "Published"
-                      ? "default"
-                      : "secondary"
-                  }
+                  className={getStatusInfo(previewMagazine.status).color}
                 >
-                  {previewMagazine.status}
+                  {getStatusInfo(previewMagazine.status).label}
                 </Badge>
               </div>
               <div className="border rounded-lg overflow-hidden bg-gray-50">
@@ -1299,7 +1211,7 @@ export default function MagazineManagement() {
                 </div>
                 <div className="flex justify-center p-4 max-h-[60vh] overflow-auto">
                   <Document
-                    file={previewMagazine.file_url}
+                    file={previewMagazine.pdf ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${previewMagazine.pdf}` : null}
                     onLoadSuccess={onDocumentLoadSuccess}
                     loading={
                       <div className="flex items-center justify-center h-96">
@@ -1359,7 +1271,8 @@ export default function MagazineManagement() {
                 <TableRow>
                   <TableHead className="w-20">Cover</TableHead>
                   <TableHead>Title</TableHead>
-                  <TableHead>Edition</TableHead>
+                  <TableHead>Issue Number</TableHead>
+                  <TableHead>Editor</TableHead>
                   <TableHead>Year</TableHead>
                   <TableHead>Size</TableHead>
                   <TableHead>Status</TableHead>
@@ -1368,7 +1281,7 @@ export default function MagazineManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {loading ? (
                   Array.from({ length: 5 }).map((_, index) => (
                     <TableRow key={index}>
                       <TableCell>
@@ -1376,6 +1289,9 @@ export default function MagazineManagement() {
                       </TableCell>
                       <TableCell>
                         <Skeleton className="h-4 w-32 bg-gray-300 dark:bg-gray-800 animate-pulse" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-24 bg-gray-300 dark:bg-gray-800 animate-pulse" />
                       </TableCell>
                       <TableCell>
                         <Skeleton className="h-4 w-24 bg-gray-300 dark:bg-gray-800 animate-pulse" />
@@ -1399,39 +1315,46 @@ export default function MagazineManagement() {
                   ))
                 ) : filteredMagazines.length > 0 ? (
                   filteredMagazines.map((magazine) => (
-                    <TableRow key={magazine.id} className="hover:bg-muted/50">
+                    <TableRow key={magazine._id || magazine.id} className="hover:bg-muted/50">
                       <TableCell>
                         <div className="aspect-[3/4] w-12 bg-gray-100 rounded overflow-hidden">
                           <img
-                            src={magazine.cover_image_url || "/placeholder.svg"}
+                            src={magazine.image ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${magazine.image}` : "/file.svg"}
                             alt={magazine.title}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src = "/file.svg?height=64&width=48";
+                            }}
                           />
                         </div>
                       </TableCell>
                       <TableCell>
                         <p className="font-medium">{magazine.title}</p>
+                        {magazine.description && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            {magazine.description}
+                          </p>
+                        )}
                       </TableCell>
                       <TableCell className="text-sm">
-                        {magazine.edition}
+                        {magazine.issueNumber}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {magazine.editor}
                       </TableCell>
                       <TableCell className="text-sm">{magazine.year}</TableCell>
                       <TableCell className="text-sm">
-                        {magazine.size_mb} MB
+                        {magazine.size ? `${(magazine.size / 1024 / 1024).toPrecision(2)} MB` : "N/A"}
                       </TableCell>
                       <TableCell>
                         <Badge
-                          variant={
-                            magazine.status === "Published"
-                              ? "default"
-                              : "secondary"
-                          }
+                          className={getStatusInfo(magazine.status).color}
                         >
-                          {magazine.status}
+                          {getStatusInfo(magazine.status).label}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm">
-                        {format(new Date(magazine.upload_date), "MMM dd, yyyy")}
+                        {magazine.uploadedAt ? format(new Date(magazine.uploadedAt), "MMM dd, yyyy") : "N/A"}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
@@ -1452,7 +1375,17 @@ export default function MagazineManagement() {
                               <Eye className="h-4 w-4 mr-2" />
                               View PDF
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="cursor-pointer">
+                            <DropdownMenuItem
+                              className="cursor-pointer"
+                              onClick={() => {
+                                if (magazine.pdf) {
+                                  const link = document.createElement('a');
+                                  link.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}${magazine.pdf}`;
+                                  link.download = `${magazine.title}.pdf`;
+                                  link.click();
+                                }
+                              }}
+                            >
                               <Download className="h-4 w-4 mr-2" />
                               Download
                             </DropdownMenuItem>
@@ -1464,8 +1397,8 @@ export default function MagazineManagement() {
                               Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => setDeleteMagazineId(magazine.id)}
-                              className="cursor-pointer"
+                              onClick={() => setDeleteMagazineId(magazine._id || magazine.id || "")}
+                              className="cursor-pointer text-red-600"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete
@@ -1477,7 +1410,7 @@ export default function MagazineManagement() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12">
+                        <TableCell colSpan={9} className="text-center py-12">
                       <p className="text-muted-foreground">
                         No magazines found matching your criteria.
                       </p>
@@ -1490,7 +1423,7 @@ export default function MagazineManagement() {
         ) : (
           // Grid View
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {isLoading ? (
+              {loading ? (
               Array.from({ length: 8 }).map((_, index) => (
                 <Card key={index} className="overflow-hidden border-0 group">
                   <Skeleton className="aspect-[3/4] w-full bg-gray-300 dark:bg-gray-800 animate-pulse" />
@@ -1510,14 +1443,17 @@ export default function MagazineManagement() {
             ) : filteredMagazines.length > 0 ? (
               filteredMagazines.map((magazine) => (
                 <Card
-                  key={magazine.id}
+                  key={magazine._id || magazine.id}
                   className="overflow-hidden hover:shadow-2xl transition-all duration-200 border group"
                 >
                   <div className="aspect-[3/4] bg-gray-100 relative overflow-hidden">
                     <img
-                      src={magazine.cover_image_url || "/placeholder.svg"}
+                      src={magazine.image ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${magazine.image}` : "/file.svg"}
                       alt={magazine.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                      onError={(e) => {
+                        e.currentTarget.src = "/file.svg?height=400&width=300";
+                      }}
                     />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200" />
                     <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
@@ -1539,7 +1475,17 @@ export default function MagazineManagement() {
                             <Eye className="h-4 w-4 mr-2" />
                             View PDF
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer">
+                          <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={() => {
+                              if (magazine.pdf) {
+                                const link = document.createElement('a');
+                                link.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}${magazine.pdf}`;
+                                link.download = `${magazine.title}.pdf`;
+                                link.click();
+                              }
+                            }}
+                          >
                             <Download className="h-4 w-4 mr-2" />
                             Download
                           </DropdownMenuItem>
@@ -1551,8 +1497,8 @@ export default function MagazineManagement() {
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => setDeleteMagazineId(magazine.id)}
-                            className="cursor-pointer"
+                            onClick={() => setDeleteMagazineId(magazine._id || magazine.id || "")}
+                            className="cursor-pointer text-red-600"
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
                             Delete
@@ -1565,26 +1511,25 @@ export default function MagazineManagement() {
                     <CardTitle className="text-sm font-medium line-clamp-1">
                       {magazine.title}
                     </CardTitle>
-                    {/* <CardDescription className="text-xs line-clamp-2">{magazine.description}</CardDescription> */}
+                    {magazine.description && (
+                      <CardDescription className="text-xs line-clamp-2">
+                        {magazine.description}
+                      </CardDescription>
+                    )}
                     <div className="flex justify-between items-center text-xs text-muted-foreground">
-                      <span>{magazine.edition}</span>
+                      <span>{magazine.issueNumber}</span>
                       <span>{magazine.year}</span>
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0">
                     <div className="flex justify-between items-center">
                       <Badge
-                        variant={
-                          magazine.status === "Published"
-                            ? "default"
-                            : "secondary"
-                        }
-                        className="text-xs"
+                        className={getStatusInfo(magazine.status).color + " text-xs"}
                       >
-                        {magazine.status}
+                        {getStatusInfo(magazine.status).label}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
-                        {magazine.size_mb} MB
+                        {magazine.size ? `${(magazine.size / 1024 / 1024).toPrecision(2)} MB` : "N/A"}
                       </span>
                     </div>
                   </CardContent>

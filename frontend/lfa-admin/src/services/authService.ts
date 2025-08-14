@@ -3,14 +3,16 @@ import axios from 'axios';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export interface LoginPayload {
-  email: string;
+  username: string;
   password: string;
 }
 
 export interface LoginResponse {
-  accessToken: string;
-  refreshToken?: string;
-  user: any;
+  data: {
+    accessToken: string;
+    refreshToken?: string;
+    user: any;
+  };
 }
 
 export const login = async (payload: LoginPayload): Promise<LoginResponse> => {

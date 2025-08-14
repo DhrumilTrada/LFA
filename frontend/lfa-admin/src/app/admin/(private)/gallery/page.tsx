@@ -1,31 +1,31 @@
   "use client";
-  import type React from "react";
+import type React from "react";
   import { useState, useCallback, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "@/app/store";
-import { fetchGalleries, createGallery, updateGallery, deleteGallery } from "@/features/gallery/galleryThunks";
+import { fetchGalleries, createGallery, updateGallery, deleteGallery, fetchCategories } from "@/features/gallery/galleryThunks";
   import { useForm } from "react-hook-form";
   import { zodResolver } from "@hookform/resolvers/zod";
   import * as z from "zod";
   import { Button } from "@/components/ui/button";
   import { Input } from "@/components/ui/input";
-  import { Label } from "@/components/ui/label";
+import { Label } from "@/components/ui/label";
   import {
     Select,
     SelectContent,
     SelectItem,
-    SelectTrigger,
+  SelectTrigger,
     SelectValue,
   } from "@/components/ui/select";
-  import {
-    Sheet,
+import {
+  Sheet,
     SheetContent,
     SheetDescription,
     SheetHeader,
-    SheetTitle,
+  SheetTitle,
     SheetTrigger,
   } from "@/components/ui/sheet";
-  import {
+import {
     Dialog,
     DialogContent,
     DialogHeader,
@@ -47,60 +47,49 @@ import { fetchGalleries, createGallery, updateGallery, deleteGallery } from "@/f
     CardContent,
     CardDescription,
     CardHeader,
-    CardTitle,
-  } from "@/components/ui/card";
+  CardTitle,
+} from "@/components/ui/card";
   import { Skeleton } from "@/components/ui/skeleton";
   import { Calendar } from "@/components/ui/calendar";
   import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-  } from "@/components/ui/popover";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
   import { Badge } from "@/components/ui/badge";
   import {
     DropdownMenu,
     DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-  } from "@/components/ui/dropdown-menu";
-  import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-  } from "@/components/ui/form";
-  import {
-    Upload,
-    Search,
-    RotateCcw,
-    Plus,
-    CalendarIcon,
-    Edit,
-    Trash2,
-    MoreVertical,
-    Eye,
-    X,
-  } from "lucide-react";
-  import { format } from "date-fns";
-  import type { DateRange } from "react-day-picker";
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Upload,
+  Search,
+  RotateCcw,
+  Plus,
+  CalendarIcon,
+  Edit,
+  Trash2,
+  MoreVertical,
+  Eye,
+  X,
+} from "lucide-react";
+import { format } from "date-fns";
+import type { DateRange } from "react-day-picker";
 
 // ...existing code...
 
-  const categories = [
-    "All",
-    "Nature",
-    "Architecture",
-    "Portrait",
-    "Food",
-    "Art",
-    "Technology",
-    "Travel",
-  ];
-
 // Use Gallery interface from slice for type
-import type { Gallery } from "@/features/gallery/gallerySlice";
+import type { Gallery, Category } from "@/features/gallery/gallerySlice";
 
   const uploadSchema = z.object({
     title: z
@@ -133,10 +122,22 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
 
   export default function Page() {
     const dispatch = useDispatch<AppDispatch>();
-    const { galleries, loading, error } = useSelector((state: RootState) => {
-      console.log("Redux selector called - galleries:", state.gallery);
+    const { galleries, categories, loading, error } = useSelector((state: RootState) => {
       return state.gallery;
     });
+
+    // Helper function to get category display name from value
+    const getCategoryDisplayName = (categoryValue: string): string => {
+      const category = categories.find(cat => cat.value === categoryValue);
+      return category ? category.key : categoryValue;
+    };
+
+    // Create display categories with "All" at the beginning, using value for uniqueness
+    const displayCategories = [
+      { key: "All", value: "All" },
+      ...categories.map(cat => ({ key: cat.key, value: cat.value }))
+    ];
+
     const [searchTitle, setSearchTitle] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
@@ -155,7 +156,7 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
       defaultValues: {
         title: "",
         description: "",
-        category: "Nature",
+        category: categories[0]?.value || "nature",
       },
     });
 
@@ -164,22 +165,31 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
       defaultValues: {
         title: "",
         description: "",
-        category: "Nature",
+        category: categories[0]?.value || "nature",
       },
     });
 
     useEffect(() => {
       dispatch(fetchGalleries());
+      dispatch(fetchCategories());
     }, [dispatch]);
 
     // ✅ This will run after Redux state is updated
     useEffect(() => {
-      console.log("galleries (updated):", galleries?.data);
+      console.log("galleries (updated):", galleries);
     }, [galleries]);
 
     useEffect(() => {
-      setFilteredImages(galleries?.data);
+      setFilteredImages(galleries);
     }, [galleries]);
+
+    // Update form default categories when categories are loaded
+    useEffect(() => {
+      if (categories.length > 0) {
+        uploadForm.setValue('category', categories[0].value);
+        editForm.setValue('category', categories[0].value);
+      }
+    }, [categories, uploadForm, editForm]);
 
     // Handle search and filtering
     const handleSearch = useCallback(() => {
@@ -192,12 +202,16 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
       if (selectedCategory !== "All") {
         filtered = filtered.filter((img) => img.category === selectedCategory);
       }
-      // if (dateRange?.from && dateRange?.to) {
-      //   filtered = filtered.filter((img) => {
-      //     const imgDate = new Date(img.year, 0, 1); // year only
-      //     return imgDate >= dateRange.from! && imgDate <= dateRange.to!;
-      //   });
-      // }
+      if (dateRange?.from && dateRange?.to) {
+        const from = dateRange.from;
+        const to = dateRange.to;
+        filtered = filtered.filter((img) => {
+          if (!img.createdAt) return false;
+          const created = new Date(img.createdAt);
+          if (isNaN(created.getTime())) return false;
+          return from && to && created >= from && created <= to;
+        });
+      }
       setFilteredImages(filtered);
     }, [searchTitle, selectedCategory, dateRange, galleries]);
 
@@ -206,7 +220,8 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
       setSearchTitle("");
       setSelectedCategory("All");
       setDateRange(undefined);
-      setFilteredImages(galleries);
+      // Restore all images from API (galleries)
+      setFilteredImages(galleries || []);
     };
 
     // Handle drag and drop
@@ -267,9 +282,13 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
         image: data.image,
         year: new Date().getFullYear(),
       };
-      await dispatch(createGallery(galleryData as any));
-      uploadForm.reset();
-      setIsUploadOpen(false);
+      const result = await dispatch(createGallery(galleryData as any));
+      if (createGallery.fulfilled.match(result)) {
+        uploadForm.reset();
+        setIsUploadOpen(false);
+        // Refresh galleries after successful creation
+        dispatch(fetchGalleries());
+      }
     };
 
     // Handle upload cancel
@@ -293,18 +312,25 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
     // Handle edit save
     const handleEditSave = async (data: EditFormData) => {
       if (!editingImage) return;
+      // Always send a valid id for update
+      const id = editingImage._id || editingImage.id;
       const galleryData = {
         ...editingImage,
+        id, // ensure id is present
         title: data.title,
         description: data.description,
         category: data.category,
         image: data.image,
       };
-      await dispatch(updateGallery(galleryData as any));
-      editForm.reset();
-      setEditingImage(null);
-      setEditImagePreview(null);
-      setIsEditOpen(false);
+      const result = await dispatch(updateGallery(galleryData as any));
+      if (updateGallery.fulfilled.match(result)) {
+        editForm.reset();
+        setEditingImage(null);
+        setEditImagePreview(null);
+        setIsEditOpen(false);
+        // Refresh galleries after successful update
+        dispatch(fetchGalleries());
+      }
     };
 
     // Handle edit cancel
@@ -322,8 +348,12 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
 
     // Handle delete
     const handleDelete = async (id: string) => {
-      await dispatch(deleteGallery(id));
-      setDeleteImageId(null);
+      const result = await dispatch(deleteGallery(id));
+      if (deleteGallery.fulfilled.match(result)) {
+        setDeleteImageId(null);
+        // Refresh galleries after successful deletion
+        dispatch(fetchGalleries());
+      }
     };
 
     const isFilterActive = useCallback(() => {
@@ -447,11 +477,9 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {categories
-                      .filter((cat) => cat !== "All")
-                      .map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
+                    {categories.map((category) => (
+                      <SelectItem key={category.value} value={category.value}>
+                        {category.key}
                         </SelectItem>
                       ))}
                   </SelectContent>
@@ -497,8 +525,7 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
                 <img
                   src={
                     editImagePreview ||
-                    editingImage.image ||
-                    "/placeholder.svg"
+                    (editingImage.image ? `${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3005"}${editingImage.image}` : "/placeholder.svg")
                   }
                   alt={editingImage.title}
                   className="w-full h-full object-cover"
@@ -623,11 +650,9 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {categories
-                      .filter((cat) => cat !== "All")
-                      .map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
+                    {categories.map((category) => (
+                      <SelectItem key={category.value} value={category.value}>
+                        {category.key}
                         </SelectItem>
                       ))}
                   </SelectContent>
@@ -660,6 +685,50 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
 
     return (
       <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Gallery Management</h1>
+            <p className="text-muted-foreground">
+              Upload and manage your image collection
+            </p>
+          </div>
+        </div>
+
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-2xl font-bold">{galleries.length}</CardTitle>
+              <CardDescription>Total Images</CardDescription>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-2xl font-bold">
+                {galleries.filter((img: any) => img.year === new Date().getFullYear()).length}
+              </CardTitle>
+              <CardDescription>This Year</CardDescription>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-2xl font-bold">
+                {categories.length}
+              </CardTitle>
+              <CardDescription>Categories</CardDescription>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-2xl font-bold">
+                {filteredImages.length}
+              </CardTitle>
+              <CardDescription>Filtered Results</CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+
         {/* Search and Filter Section */}
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-4">
@@ -686,9 +755,9 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
+                  {displayCategories.map((category) => (
+                    <SelectItem key={category.value} value={category.value}>
+                      {category.key}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -826,7 +895,7 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
               <div className="space-y-4">
                 <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
                   <img
-                    src={previewImage.image || "/placeholder.svg"}
+                    src={previewImage.image ? `${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3005"}${previewImage.image}` : "/placeholder.svg"}
                     alt={previewImage.title}
                     className="w-full h-full object-contain"
                   />
@@ -836,7 +905,7 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
                     {previewImage.description}
                   </p>
                   <div className="flex justify-between items-center">
-                    <Badge>{previewImage.category}</Badge>
+                    <Badge>{getCategoryDisplayName(previewImage.category)}</Badge>
                     <span className="text-xs text-muted-foreground">
                       {/* {format(new Date(previewImage.createdAt), "MMM dd, yyyy")} */}
                     </span>
@@ -848,7 +917,21 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
         </Dialog>
 
         {/* Image Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">All Images</h2>
+            <p className="text-sm text-muted-foreground">
+              Manage your image collection
+            </p>
+          </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-red-600 text-sm">Error: {error}</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {loading ? (
             // Skeleton Loading
             Array.from({ length: 8 }).map((_, index) => (
@@ -870,12 +953,12 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
           ) : filteredImages?.length > 0 ? (
             filteredImages.map((image) => (
               <Card
-                key={image?._id}
+                key={image?._id || image?.id}
                 className="overflow-hidden hover:shadow-2xl transition-all duration-200 border group"
               >
                 <div className="aspect-video bg-gray-100 relative overflow-hidden">
                   <img
-                    src={image.image || "/placeholder.svg"}
+                    src={image.image ? `${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3005"}${image.image}` : "/placeholder.svg"}
                     alt={image.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                   />
@@ -909,7 +992,7 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => setDeleteImageId(image.id ?? null)}
+                          onClick={() => setDeleteImageId((image._id || image.id) ?? null)}
                           className="cursor-pointer"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
@@ -947,7 +1030,7 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => setDeleteImageId(image.id ?? null)}
+                          onClick={() => setDeleteImageId((image._id || image.id) ?? null)}
                           className="cursor-pointer"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
@@ -968,7 +1051,7 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="flex justify-between items-center">
-                    <Badge className="text-xs">{image.category}</Badge>
+                    <Badge className="text-xs">{getCategoryDisplayName(image.category)}</Badge>
                     {/* <span className="text-xs text-muted-foreground">
                       {format(new Date(image.createdAt), "MMM dd, yyyy")}
                     </span> */}
@@ -983,6 +1066,7 @@ import type { Gallery } from "@/features/gallery/gallerySlice";
               </p>
             </div>
           )}
+          </div>
         </div>
       </div>
     );

@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import galleryService from '../../services/galleryService';
-import { Gallery } from './gallerySlice';
+import { Gallery, Category } from './gallerySlice';
 
 export const fetchGalleries = createAsyncThunk(
   'gallery/fetchGalleries',
@@ -40,6 +40,17 @@ export const deleteGallery = createAsyncThunk(
   async (id: string, { rejectWithValue }) => {
     try {
       return await galleryService.deleteGallery(id);
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const fetchCategories = createAsyncThunk(
+  'gallery/fetchCategories',
+  async (_, { rejectWithValue }) => {
+    try {
+      return await galleryService.getCategories();
     } catch (error: any) {
       return rejectWithValue(error.message);
     }

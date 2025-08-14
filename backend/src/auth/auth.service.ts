@@ -40,8 +40,8 @@ export class AuthService {
     @Inject('REDIS_CLIENT') private readonly redisClient: Redis.Redis
   ) {}
 
-  async validateUser(username: string, pass: string): Promise<any> {
-    const user = await this.usersAuthService.findByEmail(username)
+  async validateUser(email: string, pass: string): Promise<any> {
+    const user = await this.usersAuthService.findByEmail(email)
 
     if (!user) {
       throw new UnauthorizedException([AuthResponseMessages.USER_NOT_FOUND])
@@ -177,7 +177,6 @@ export class AuthService {
   }
 
   async removeExpireToken() {
-    console.log('Entry:Remove expire token function in auth service')
     console.log('cron run successfully')
     const update = await this.usersAuthService.removeExpireTokenFromAllUsers()
     return update
@@ -185,7 +184,7 @@ export class AuthService {
 
   public createResetPasswordToken(userData: any) {
     const payload = {
-      username: userData.email.toLowerCase(),
+      email: userData.email.toLowerCase(),
       name: userData.name
     }
 

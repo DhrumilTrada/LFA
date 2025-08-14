@@ -44,7 +44,6 @@ export class GalleryController {
     if (files.image?.[0]) {
       createGalleryDto.image = files.image[0].buffer;
     }
-    console.log('Creating gallery item with data:', createGalleryDto);
     return this.galleryService.create(createGalleryDto, userId);
   }
 
@@ -64,16 +63,19 @@ export class GalleryController {
     return this.galleryService.findOne(id);
   }
 
-  @ApiOperation({ summary: 'Update a gallery item' })
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('access-token')
   @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileFieldsInterceptor([{ name: 'image', maxCount: 1 }]))
   update(
     @Param('id') id: string,
+    @UploadedFiles() files: { image?: MulterFile[] },
     @Body() updateGalleryDto: UpdateGalleryDto,
-    // @UserId() userId: string // Uncomment if you have user context
+    @UserId() userId: string
   ) {
-    return this.galleryService.update(id, updateGalleryDto, null); // Replace null with userId if available
+    if (files.image?.[0]) {
+      updateGalleryDto.image = files.image[0].buffer;
+    }
+    return this.galleryService.update(id, updateGalleryDto, userId);
   }
 
   @ApiOperation({ summary: 'Delete a gallery item' })
@@ -82,5 +84,13 @@ export class GalleryController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.galleryService.remove(id);
+  }
+
+  @ApiOperation({ summary: 'Get all available categories' })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @Get('categories/list')
+  getCategories() {
+    return this.galleryService.getCategories();
   }
 }

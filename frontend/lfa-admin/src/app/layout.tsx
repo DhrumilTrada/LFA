@@ -7,8 +7,8 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "LFA ADMIN PANNEL",
-  description: "Managing all the LFA webiste by admin pannel",
+  title: "LFA ADMIN PANEL",
+  description: "Managing all the LFA webiste by admin panel",
 };
 
 export default function RootLayout({

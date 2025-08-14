@@ -5,7 +5,7 @@ import { Magazine, MagazineDocument } from './schemas/magazine.schema';
 import { CreateMagazineDto } from './dto/create-magazine.dto';
 import { UpdateMagazineDto } from './dto/update-magazine.dto';
 import { MagazinePaginationQuery } from './filters/magazine.filter';
-import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { FileService } from '../file/file.service';
 
 @Injectable()
 export class MagazineService {
@@ -13,22 +13,22 @@ export class MagazineService {
 
   constructor(
     @InjectModel(Magazine.name) public magazineModel: Model<MagazineDocument>,
-    private readonly cloudinaryService: CloudinaryService,
+    private readonly fileService: FileService,
   ) {}
 
   async create(createMagazineDto: CreateMagazineDto, userId: string) {
     let imageUrl = createMagazineDto.image;
     let pdfUrl = createMagazineDto.pdf;
     let size = 0;
-    // If image is a buffer, upload to Cloudinary
+    // If image is a buffer, save to local uploads folder
     if (createMagazineDto.image && Buffer.isBuffer(createMagazineDto.image)) {
-      const result = await this.cloudinaryService.uploadFile(createMagazineDto.image, 'magazine-image', 'image/jpeg');
+      const result = await this.fileService.saveFile(createMagazineDto.image, 'magazine-image.jpg', 'magazines', 'image/jpeg');
       imageUrl = result.url;
       size += result.size;
     }
-    // If pdf is a buffer, upload to Cloudinary
+    // If pdf is a buffer, save to local uploads folder
     if (createMagazineDto.pdf && Buffer.isBuffer(createMagazineDto.pdf)) {
-      const result = await this.cloudinaryService.uploadFile(createMagazineDto.pdf, 'magazine-pdf', 'application/pdf');
+      const result = await this.fileService.saveFile(createMagazineDto.pdf, 'magazine.pdf', 'magazines', 'application/pdf');
       pdfUrl = result.url;
       size += result.size;
 
@@ -52,12 +52,12 @@ export class MagazineService {
     let pdfUrl = updateMagazineDto.pdf;
     let size = 0;
     if (updateMagazineDto.image && Buffer.isBuffer(updateMagazineDto.image)) {
-      const result = await this.cloudinaryService.uploadFile(updateMagazineDto.image, 'magazine-image', 'image/jpeg');
+      const result = await this.fileService.saveFile(updateMagazineDto.image, 'magazine-image.jpg', 'magazines', 'image/jpeg');
       imageUrl = result.url;
       size += result.size;
     }
     if (updateMagazineDto.pdf && Buffer.isBuffer(updateMagazineDto.pdf)) {
-      const result = await this.cloudinaryService.uploadFile(updateMagazineDto.pdf, 'magazine-pdf', 'application/pdf');
+      const result = await this.fileService.saveFile(updateMagazineDto.pdf, 'magazine.pdf', 'magazines', 'application/pdf');
       pdfUrl = result.url;
       size += result.size;
     }

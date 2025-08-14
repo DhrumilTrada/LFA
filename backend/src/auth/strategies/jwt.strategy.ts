@@ -25,15 +25,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
   async validate(req: Request, payload: any) {
     const token = req.headers.authorization?.split('Bearer ')[1]
-
     if (!token) {
       throw new UnauthorizedException('Missing token')
-    }
-
-    const isBlacklisted = await this.redisClient.get(token)
-
-    if (isBlacklisted) {
-      throw new UnauthorizedException('Token has been blacklisted')
     }
 
     return {

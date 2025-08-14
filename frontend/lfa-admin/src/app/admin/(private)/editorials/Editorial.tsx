@@ -7,6 +7,7 @@ import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -95,78 +96,13 @@ import type { DateRange } from "react-day-picker";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/app/store";
+import { getEditorials, createEditorial, updateEditorial, deleteEditorial } from "@/features/editorial/editorialThunks";
+import { Editorial } from "@/features/editorial/editorialSlice";
 
 // Set up PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.mjs";
-
-// Mock data for editorials
-const mockEditorials = [
-  {
-    id: 1,
-    title: "The Future of Digital Art",
-    category: "Analysis",
-    file_url: "/magazine/Attitude is Everything by Jeff Keller.pdf",
-    cover_image_url:
-      "/magazine/favicon.png?height=300&width=200&text=Digital+Art+Editorial",
-    size_mb: 2.4,
-    status: "Published",
-    date: "2024-03-15",
-  },
-  {
-    id: 2,
-    title: "Interview with Renowned Poet",
-    category: "Interview",
-    file_url: "/placeholder.pdf",
-    cover_image_url:
-      "/placeholder.svg?height=400&width=300&text=Poetry+Interview",
-    size_mb: 1.8,
-    status: "Published",
-    date: "2024-03-10",
-  },
-  {
-    id: 3,
-    title: "Campus Literature Scene",
-    category: "Opinion",
-    file_url: "/placeholder.pdf",
-    cover_image_url:
-      "/placeholder.svg?height=400&width=300&text=Campus+Literature",
-    size_mb: 2.1,
-    status: "Draft",
-    date: "2024-03-05",
-  },
-  {
-    id: 4,
-    title: "Modern Poetry Trends",
-    category: "Analysis",
-    file_url: "/placeholder.pdf",
-    cover_image_url: "/placeholder.svg?height=400&width=300&text=Poetry+Trends",
-    size_mb: 3.2,
-    status: "Published",
-    date: "2024-02-28",
-  },
-  {
-    id: 5,
-    title: "Student Voice: Creative Writing",
-    category: "Opinion",
-    file_url: "/placeholder.pdf",
-    cover_image_url:
-      "/placeholder.svg?height=400&width=300&text=Creative+Writing",
-    size_mb: 1.5,
-    status: "Published",
-    date: "2024-02-20",
-  },
-  {
-    id: 6,
-    title: "Literary Festival Review",
-    category: "Review",
-    file_url: "/placeholder.pdf",
-    cover_image_url:
-      "/placeholder.svg?height=400&width=300&text=Festival+Review",
-    size_mb: 2.8,
-    status: "Draft",
-    date: "2024-02-15",
-  },
-];
 
 const categories = [
   "All",
@@ -179,18 +115,12 @@ const categories = [
   "Commentary",
 ];
 
-const statusOptions = ["All", "Published", "Draft"];
-
-interface EditorialData {
-  id: number;
-  title: string;
-  category: string;
-  file_url: string;
-  cover_image_url: string;
-  size_mb: number;
-  status: string;
-  date: string;
-}
+const statusOptions = [
+  { label: "All", value: "All" },
+  { label: "Draft", value: "draft" },
+  { label: "Published", value: "published" },
+  { label: "Archived", value: "archived" },
+];
 
 const uploadSchema = z.object({
   title: z
@@ -198,8 +128,18 @@ const uploadSchema = z.object({
     .min(1, "Title is required")
     .max(100, "Title must be less than 100 characters"),
   category: z.string().min(1, "Category is required"),
-  status: z.enum(["Published", "Draft"]),
-  cover: z
+  status: z.enum(["draft", "published", "archived"]),
+  excerpt: z
+    .string()
+    .max(500, "Excerpt must be less than 500 characters")
+    .optional(),
+  content: z
+    .string()
+    .min(1, "Content is required")
+    .max(5000, "Content must be less than 5000 characters"),
+  tags: z.array(z.string()).optional(),
+  featured: z.boolean().optional(),
+  image: z
     .any()
     .refine((file) => file instanceof File, "Cover image is required"),
   pdf: z.any().refine((file) => file instanceof File, "PDF file is required"),
@@ -211,8 +151,18 @@ const editSchema = z.object({
     .min(1, "Title is required")
     .max(100, "Title must be less than 100 characters"),
   category: z.string().min(1, "Category is required"),
-  status: z.enum(["Published", "Draft"]),
-  cover: z.any().optional(),
+  status: z.enum(["draft", "published", "archived"]),
+  excerpt: z
+    .string()
+    .max(500, "Excerpt must be less than 500 characters")
+    .optional(),
+  content: z
+    .string()
+    .min(1, "Content is required")
+    .max(5000, "Content must be less than 5000 characters"),
+  tags: z.array(z.string()).optional(),
+  featured: z.boolean().optional(),
+  image: z.any().optional(),
   pdf: z.any().optional(),
 });
 
@@ -220,23 +170,19 @@ type UploadFormData = z.infer<typeof uploadSchema>;
 type EditFormData = z.infer<typeof editSchema>;
 
 export default function EditorialManagement() {
+  const dispatch = useDispatch<AppDispatch>();
+  const { editorials, loading, error } = useSelector((state: RootState) => state.editorial);
+
   const [searchTitle, setSearchTitle] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const [isLoading, setIsLoading] = useState(true);
-  const [editorials, setEditorials] = useState<EditorialData[]>(mockEditorials);
-  const [filteredEditorials, setFilteredEditorials] =
-    useState<EditorialData[]>(mockEditorials);
+  const [filteredEditorials, setFilteredEditorials] = useState<Editorial[]>([]);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [previewEditorial, setPreviewEditorial] =
-    useState<EditorialData | null>(null);
-  const [editingEditorial, setEditingEditorial] =
-    useState<EditorialData | null>(null);
-  const [deleteEditorialId, setDeleteEditorialId] = useState<number | null>(
-    null
-  );
+  const [previewEditorial, setPreviewEditorial] = useState<Editorial | null>(null);
+  const [editingEditorial, setEditingEditorial] = useState<Editorial | null>(null);
+  const [deleteEditorialId, setDeleteEditorialId] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [editCoverPreview, setEditCoverPreview] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "table">("table");
@@ -249,7 +195,11 @@ export default function EditorialManagement() {
     defaultValues: {
       title: "",
       category: "Analysis",
-      status: "Draft",
+      status: "draft",
+      excerpt: "",
+      content: "",
+      tags: [],
+      featured: false,
     },
   });
 
@@ -258,79 +208,87 @@ export default function EditorialManagement() {
     defaultValues: {
       title: "",
       category: "Analysis",
-      status: "Draft",
+      status: "draft",
+      excerpt: "",
+      content: "",
+      tags: [],
+      featured: false,
     },
   });
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setEditorials(mockEditorials);
-      setFilteredEditorials(mockEditorials);
-      setIsLoading(false);
-    }, 800);
+    dispatch(getEditorials({}));
+  }, [dispatch]);
 
-    return () => clearTimeout(timer);
-  }, []);
+  useEffect(() => {
+    setFilteredEditorials(editorials);
+  }, [editorials]);
 
   // Calculate statistics
   const stats = {
     total: editorials.length,
-    published: editorials.filter((e) => e.status === "Published").length,
-    drafts: editorials.filter((e) => e.status === "Draft").length,
+    published: editorials.filter((e) => e.status === "published").length,
+    drafts: editorials.filter((e) => e.status === "draft").length,
     categories: new Set(editorials.map((e) => e.category)).size,
+  };
+
+  // Helper function to get status display name and color
+  const getStatusInfo = (status: string) => {
+    switch (status) {
+      case "published":
+        return { label: "Published", color: "bg-green-100 text-green-800" };
+      case "draft":
+        return { label: "Draft", color: "bg-yellow-100 text-yellow-800" };
+      case "archived":
+        return { label: "Archived", color: "bg-gray-100 text-gray-800" };
+      default:
+        return { label: status, color: "bg-gray-100 text-gray-800" };
+    }
   };
 
   // Handle search and filtering
   const handleSearch = useCallback(() => {
-    setIsLoading(true);
+    let filtered = editorials;
 
-    setTimeout(() => {
-      let filtered = editorials;
+    if (searchTitle.trim()) {
+      filtered = filtered.filter((editorial) =>
+        editorial.title.toLowerCase().includes(searchTitle.toLowerCase()) ||
+        editorial.category.toLowerCase().includes(searchTitle.toLowerCase()) ||
+        editorial.content.toLowerCase().includes(searchTitle.toLowerCase())
+      );
+    }
 
-      if (searchTitle.trim()) {
-        filtered = filtered.filter((editorial) =>
-          editorial.title.toLowerCase().includes(searchTitle.toLowerCase())
+    if (selectedCategory !== "All") {
+      filtered = filtered.filter(
+        (editorial) => editorial.category === selectedCategory
+      );
+    }
+
+    if (selectedStatus !== "All") {
+      filtered = filtered.filter(
+        (editorial) => editorial.status === selectedStatus
+      );
+    }
+
+    if (dateRange?.from && dateRange?.to) {
+      filtered = filtered.filter((editorial) => {
+        const editorialDate = new Date(editorial.createdAt || editorial.uploadedAt || '');
+        return (
+          editorialDate >= dateRange.from! && editorialDate <= dateRange.to!
         );
-      }
+      });
+    }
 
-      if (selectedCategory !== "All") {
-        filtered = filtered.filter(
-          (editorial) => editorial.category === selectedCategory
-        );
-      }
-
-      if (selectedStatus !== "All") {
-        filtered = filtered.filter(
-          (editorial) => editorial.status === selectedStatus
-        );
-      }
-
-      if (dateRange?.from && dateRange?.to) {
-        filtered = filtered.filter((editorial) => {
-          const editorialDate = new Date(editorial.date);
-          return (
-            editorialDate >= dateRange.from! && editorialDate <= dateRange.to!
-          );
-        });
-      }
-
-      setFilteredEditorials(filtered);
-      setIsLoading(false);
-    }, 800);
+    setFilteredEditorials(filtered);
   }, [searchTitle, selectedCategory, selectedStatus, dateRange, editorials]);
 
   // Handle reset filters
   const handleReset = () => {
-    setIsLoading(true);
-
-    setTimeout(() => {
-      setSearchTitle("");
-      setSelectedCategory("All");
-      setSelectedStatus("All");
-      setDateRange(undefined);
-      setFilteredEditorials(editorials);
-      setIsLoading(false);
-    }, 1500);
+    setSearchTitle("");
+    setSelectedCategory("All");
+    setSelectedStatus("All");
+    setDateRange(undefined);
+    setFilteredEditorials(editorials);
   };
 
   // Handle drag and drop
@@ -345,7 +303,7 @@ export default function EditorialManagement() {
   }, []);
 
   const handleDrop = useCallback(
-    (e: React.DragEvent, fileType: "cover" | "pdf", isEdit = false) => {
+    (e: React.DragEvent, fileType: "image" | "pdf", isEdit = false) => {
       e.preventDefault();
       e.stopPropagation();
       setDragActive(false);
@@ -354,8 +312,8 @@ export default function EditorialManagement() {
         const file = e.dataTransfer.files[0];
         const form = isEdit ? editForm : uploadForm;
 
-        if (fileType === "cover" && file.type.startsWith("image/")) {
-          form.setValue("cover", file);
+        if (fileType === "image" && file.type.startsWith("image/")) {
+          form.setValue("image", file);
           if (isEdit) {
             setEditCoverPreview(URL.createObjectURL(file));
           }
@@ -370,7 +328,7 @@ export default function EditorialManagement() {
   // Handle file input change
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    fileType: "cover" | "pdf",
+    fileType: "image" | "pdf",
     isEdit = false
   ) => {
     if (e.target.files && e.target.files[0]) {
@@ -378,29 +336,33 @@ export default function EditorialManagement() {
       const form = isEdit ? editForm : uploadForm;
       form.setValue(fileType, file);
 
-      if (fileType === "cover" && isEdit) {
+      if (fileType === "image" && isEdit) {
         setEditCoverPreview(URL.createObjectURL(file));
       }
     }
   };
 
   // Handle upload save
-  const handleUploadSave = (data: UploadFormData) => {
-    const newEditorial: EditorialData = {
-      id: Date.now(),
+  const handleUploadSave = async (data: UploadFormData) => {
+    const editorialData = {
       title: data.title,
       category: data.category,
       status: data.status,
-      file_url: URL.createObjectURL(data.pdf),
-      cover_image_url: URL.createObjectURL(data.cover),
-      size_mb: Number.parseFloat((Math.random() * 5 + 1).toFixed(1)),
-      date: new Date().toISOString().split("T")[0],
+      excerpt: data.excerpt || "",
+      content: data.content,
+      tags: data.tags || [],
+      featured: data.featured || false,
+      image: data.image,
+      pdf: data.pdf,
     };
 
-    setEditorials((prev) => [newEditorial, ...prev]);
-    setFilteredEditorials((prev) => [newEditorial, ...prev]);
-    uploadForm.reset();
-    setIsUploadOpen(false);
+    const result = await dispatch(createEditorial(editorialData));
+    if (createEditorial.fulfilled.match(result)) {
+      uploadForm.reset();
+      setIsUploadOpen(false);
+      // Refresh editorials after successful creation
+      dispatch(getEditorials({}));
+    }
   };
 
   // Handle upload cancel
@@ -410,50 +372,55 @@ export default function EditorialManagement() {
   };
 
   // Handle edit open
-  const handleEditOpen = (editorial: EditorialData) => {
+  const handleEditOpen = (editorial: Editorial) => {
     setEditingEditorial(editorial);
     setEditCoverPreview(null);
     editForm.reset({
       title: editorial.title,
       category: editorial.category,
-      status: editorial.status as "Published" | "Draft",
+      status: editorial.status,
+      excerpt: editorial.excerpt || "",
+      content: editorial.content,
+      tags: editorial.tags || [],
+      featured: editorial.featured || false,
     });
     setIsEditOpen(true);
   };
 
   // Handle edit save
-  const handleEditSave = (data: EditFormData) => {
+  const handleEditSave = async (data: EditFormData) => {
     if (!editingEditorial) return;
 
-    const updatedEditorial: EditorialData = {
-      ...editingEditorial,
+    const updateData: any = {
       title: data.title,
       category: data.category,
       status: data.status,
-      cover_image_url: editCoverPreview || editingEditorial.cover_image_url,
-      file_url: data.pdf
-        ? URL.createObjectURL(data.pdf)
-        : editingEditorial.file_url,
-      size_mb: data.pdf
-        ? Number.parseFloat((data.pdf.size / (1024 * 1024)).toFixed(1))
-        : editingEditorial.size_mb,
+      excerpt: data.excerpt,
+      content: data.content,
+      tags: data.tags,
+      featured: data.featured,
     };
 
-    setEditorials((prev) =>
-      prev.map((editorial) =>
-        editorial.id === editingEditorial.id ? updatedEditorial : editorial
-      )
-    );
-    setFilteredEditorials((prev) =>
-      prev.map((editorial) =>
-        editorial.id === editingEditorial.id ? updatedEditorial : editorial
-      )
-    );
+    if (data.image) {
+      updateData.image = data.image;
+    }
+    if (data.pdf) {
+      updateData.pdf = data.pdf;
+    }
 
-    editForm.reset();
-    setEditingEditorial(null);
-    setEditCoverPreview(null);
-    setIsEditOpen(false);
+    const result = await dispatch(updateEditorial({
+      id: editingEditorial._id || editingEditorial.id || "",
+      data: updateData
+    }));
+
+    if (updateEditorial.fulfilled.match(result)) {
+      editForm.reset();
+      setEditingEditorial(null);
+      setEditCoverPreview(null);
+      setIsEditOpen(false);
+      // Refresh editorials after successful update
+      dispatch(getEditorials({}));
+    }
   };
 
   // Handle edit cancel
@@ -465,12 +432,13 @@ export default function EditorialManagement() {
   };
 
   // Handle delete
-  const handleDelete = (id: number) => {
-    setEditorials((prev) => prev.filter((editorial) => editorial.id !== id));
-    setFilteredEditorials((prev) =>
-      prev.filter((editorial) => editorial.id !== id)
-    );
-    setDeleteEditorialId(null);
+  const handleDelete = async (id: string) => {
+    const result = await dispatch(deleteEditorial(id));
+    if (deleteEditorial.fulfilled.match(result)) {
+      setDeleteEditorialId(null);
+      // Refresh editorials after successful deletion
+      dispatch(getEditorials({}));
+    }
   };
 
   // PDF viewer functions
@@ -488,26 +456,38 @@ export default function EditorialManagement() {
     );
   }, [searchTitle, selectedCategory, selectedStatus, dateRange]);
 
-  // Render file upload area
+  // Render file upload area with conditional hiding
   const renderFileUploadArea = (
-    fileType: "cover" | "pdf",
+    fileType: "image" | "pdf",
     isEdit = false,
     currentFile?: string
   ) => {
-    const accept = fileType === "cover" ? "image/*" : "application/pdf";
-    const label = fileType === "cover" ? "Cover Image" : "PDF File";
-    const icon = fileType === "cover" ? Upload : FileText;
+    // Determine the other file type
+    const otherType = fileType === "image" ? "pdf" : "image";
+    // Get the form instance
+    const form = isEdit ? editForm : uploadForm;
+    // If the other file is selected, hide this input
+    if (form.getValues()[otherType] instanceof File) {
+      return null;
+    }
+
+    const accept = fileType === "image" ? "image/*" : "application/pdf";
+    const label = fileType === "image" ? "Cover Image" : "PDF File";
+    const icon = fileType === "image" ? Upload : FileText;
     const IconComponent = icon;
 
     return (
       <div className="space-y-3">
         <Label className="text-sm font-medium">{label}</Label>
-        {isEdit && currentFile && fileType === "cover" && (
+        {isEdit && currentFile && fileType === "image" && (
           <div className="relative aspect-[3/4] w-32 bg-gray-100 rounded-lg overflow-hidden group">
             <img
-              src={editCoverPreview || currentFile}
+              src={editCoverPreview || `${process.env.NEXT_PUBLIC_API_BASE_URL}${currentFile}`}
               alt="Current cover"
               className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = "/file.svg?height=400&width=300";
+              }}
             />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200" />
             <Button
@@ -516,7 +496,7 @@ export default function EditorialManagement() {
               size="icon"
               className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
               onClick={() =>
-                setEditCoverPreview("/placeholder.svg?height=400&width=300")
+                setEditCoverPreview("/file.svg?height=400&width=300")
               }
             >
               <X className="h-3 w-3" />
@@ -536,7 +516,7 @@ export default function EditorialManagement() {
         >
           <IconComponent className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
           <p className="text-sm text-muted-foreground mb-3">
-            Drag and drop {fileType === "cover" ? "an image" : "a PDF"} here, or
+            Drag and drop {fileType === "image" ? "an image" : "a PDF"} here, or
             click to select
           </p>
           <input
@@ -632,10 +612,50 @@ export default function EditorialManagement() {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="Published">Published</SelectItem>
-                  <SelectItem value="Draft">Draft</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="published">Published</SelectItem>
+                  <SelectItem value="archived">Archived</SelectItem>
                 </SelectContent>
               </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Excerpt */}
+        <FormField
+          control={uploadForm.control}
+          name="excerpt"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Excerpt</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Brief description or excerpt (optional)"
+                  {...field}
+                  className="focus-visible:ring-2 focus-visible:ring-primary"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Content */}
+        <FormField
+          control={uploadForm.control}
+          name="content"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Content *</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Enter the full editorial content"
+                  {...field}
+                  rows={6}
+                  className="focus-visible:ring-2 focus-visible:ring-primary"
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -644,39 +664,11 @@ export default function EditorialManagement() {
         {/* Cover Image Upload */}
         <FormField
           control={uploadForm.control}
-          name="cover"
+          name="image"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Cover Image *</FormLabel>
               <FormControl>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                  <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                  <p className="text-sm text-gray-600 mb-2">
-                    Upload cover image
-                  </p>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleFileChange(e, "cover", false)}
-                    className="hidden"
-                    id="cover-upload"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      document.getElementById("cover-upload")?.click()
-                    }
-                  >
-                    Choose Image
-                  </Button>
-                  {field.value && (
-                    <p className="text-xs text-green-600 mt-2">
-                      Selected: {field.value.name}
-                    </p>
-                  )}
-                </div>
+                <div>{renderFileUploadArea("image", false)}</div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -689,32 +681,14 @@ export default function EditorialManagement() {
           name="pdf"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>PDF File *</FormLabel>
               <FormControl>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                  <FileText className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                  <p className="text-sm text-gray-600 mb-2">Upload PDF file</p>
-                  <input
-                    type="file"
-                    accept="application/pdf"
-                    onChange={(e) => handleFileChange(e, "pdf", false)}
-                    className="hidden"
-                    id="pdf-upload"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      document.getElementById("pdf-upload")?.click()
-                    }
-                  >
-                    Choose PDF
-                  </Button>
-                  {field.value && (
-                    <p className="text-xs text-green-600 mt-2">
-                      Selected: {field.value.name}
-                    </p>
+                <div>
+                  {renderFileUploadArea("pdf", false)}
+                  {field.value instanceof File && (
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      <span className="font-medium">{field.value.name}</span>
+                      {" "}- {(field.value.size / 1024 / 1024).toFixed(2)} MB
+                    </div>
                   )}
                 </div>
               </FormControl>
@@ -727,9 +701,10 @@ export default function EditorialManagement() {
         <div className="flex gap-3 pt-4">
           <Button
             type="submit"
-            className="flex-1 bg-purple-600 hover:bg-purple-700"
+            className="flex-1 bg-blue-600 hover:bg-blue-700"
+            disabled={loading}
           >
-            Upload Editorial
+            {loading ? "Uploading..." : "Upload Editorial"}
           </Button>
           <Button
             type="button"
@@ -752,14 +727,17 @@ export default function EditorialManagement() {
         className="space-y-6 mx-4"
       >
         {/* Current Cover Preview */}
-        {editingEditorial && (
+        {editingEditorial?.image && (
           <div className="space-y-3">
             <Label className="text-sm font-medium">Current Cover</Label>
             <div className="relative aspect-[3/4] w-32 bg-gray-100 rounded-lg overflow-hidden group">
               <img
-                src={editCoverPreview || editingEditorial.cover_image_url}
+                src={editCoverPreview || `${process.env.NEXT_PUBLIC_API_BASE_URL}${editingEditorial.image}`}
                 alt={editingEditorial.title}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = "/file.svg?height=400&width=300";
+                }}
               />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200" />
               <Button
@@ -768,7 +746,7 @@ export default function EditorialManagement() {
                 size="icon"
                 className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                 onClick={() =>
-                  setEditCoverPreview("/placeholder.svg?height=400&width=300")
+                  setEditCoverPreview("/file.svg?height=400&width=300")
                 }
               >
                 <X className="h-3 w-3" />
@@ -780,15 +758,15 @@ export default function EditorialManagement() {
         {/* New Cover Upload */}
         <FormField
           control={editForm.control}
-          name="cover"
+          name="image"
           render={({ field }) => (
             <FormItem>
               <FormControl>
                 <div>
                   {renderFileUploadArea(
-                    "cover",
+                    "image",
                     true,
-                    editingEditorial?.cover_image_url
+                    editingEditorial?.image
                   )}
                 </div>
               </FormControl>
@@ -804,7 +782,15 @@ export default function EditorialManagement() {
           render={({ field }) => (
             <FormItem>
               <FormControl>
-                <div>{renderFileUploadArea("pdf", true)}</div>
+                <div>
+                  {renderFileUploadArea("pdf", true)}
+                  {field.value instanceof File && (
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      <span className="font-medium">{field.value.name}</span>
+                      {" "}- {(field.value.size / 1024 / 1024).toFixed(2)} MB
+                    </div>
+                  )}
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -817,7 +803,7 @@ export default function EditorialManagement() {
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Title</FormLabel>
+              <FormLabel>Title *</FormLabel>
               <FormControl>
                 <Input
                   placeholder="Enter editorial title"
@@ -837,7 +823,7 @@ export default function EditorialManagement() {
             name="category"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Category</FormLabel>
+                <FormLabel>Category *</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
@@ -863,7 +849,7 @@ export default function EditorialManagement() {
             name="status"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Status</FormLabel>
+                <FormLabel>Status *</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
@@ -871,8 +857,9 @@ export default function EditorialManagement() {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="Published">Published</SelectItem>
-                    <SelectItem value="Draft">Draft</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="published">Published</SelectItem>
+                    <SelectItem value="archived">Archived</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -881,19 +868,59 @@ export default function EditorialManagement() {
           />
         </div>
 
+        {/* Excerpt */}
+        <FormField
+          control={editForm.control}
+          name="excerpt"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Excerpt</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Brief description or excerpt (optional)"
+                  {...field}
+                  className="focus-visible:ring-2 focus-visible:ring-primary"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Content */}
+        <FormField
+          control={editForm.control}
+          name="content"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Content *</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Enter the full editorial content"
+                  {...field}
+                  rows={6}
+                  className="focus-visible:ring-2 focus-visible:ring-primary"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         {/* Action Buttons */}
         <div className="flex gap-3 pb-4">
           <Button
             type="submit"
-            className="flex-1 bg-purple-600 hover:bg-purple-700 cursor-pointer"
+            className="flex-1 bg-blue-600 hover:bg-blue-700"
+            disabled={loading}
           >
-            Update Editorial
+            {loading ? "Updating..." : "Update Editorial"}
           </Button>
           <Button
             type="button"
             variant="outline"
             onClick={handleEditCancel}
-            className="flex-1 hover:bg-gray-300 cursor-pointer bg-transparent"
+            className="flex-1 bg-transparent"
           >
             Cancel
           </Button>
@@ -913,7 +940,7 @@ export default function EditorialManagement() {
         {/* Upload Editorial Sheet Sidebar */}
         <Sheet open={isUploadOpen} onOpenChange={setIsUploadOpen}>
           <SheetTrigger asChild>
-            <Button className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 cursor-pointer">
+            <Button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 cursor-pointer">
               <Plus className="h-4 w-4" />
               Upload Editorial
             </Button>
@@ -1015,8 +1042,8 @@ export default function EditorialManagement() {
               </SelectTrigger>
               <SelectContent>
                 {statusOptions.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {status}
+                  <SelectItem key={status.value} value={status.value}>
+                    {status.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -1123,7 +1150,7 @@ export default function EditorialManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
+              {loading ? (
                 Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={index} className="border-gray-300">
                     <TableCell>
@@ -1155,20 +1182,28 @@ export default function EditorialManagement() {
               ) : filteredEditorials.length > 0 ? (
                 filteredEditorials.map((editorial) => (
                   <TableRow
-                    key={editorial.id}
+                    key={editorial._id || editorial.id}
                     className="border-gray-300 hover:bg-gray-100"
                   >
                     <TableCell>
                       <div className="aspect-[3/4] w-12  rounded overflow-hidden">
                         <img
-                          src={editorial.cover_image_url || "/placeholder.svg"}
+                          src={editorial.image ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${editorial.image}` : "/file.svg"}
                           alt={editorial.title}
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src = "/file.svg?height=64&width=48";
+                          }}
                         />
                       </div>
                     </TableCell>
                     <TableCell>
                       <p className="font-medium ">{editorial.title}</p>
+                      {editorial.excerpt && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          {editorial.excerpt}
+                        </p>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge className="bg-blue-600 hover:bg-blue-700">
@@ -1176,20 +1211,18 @@ export default function EditorialManagement() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {format(new Date(editorial.date), "MMM dd, yyyy")}
+                      {editorial.createdAt ? format(new Date(editorial.createdAt), "MMM dd, yyyy") : "N/A"}
                     </TableCell>
                     <TableCell>
                       <Badge
-                        className={
-                          editorial.status === "Published"
-                            ? "bg-green-600 hover:bg-green-700"
-                            : " hover:bg-gray-300"
-                        }
+                        className={getStatusInfo(editorial.status).color}
                       >
-                        {editorial.status}
+                        {getStatusInfo(editorial.status).label}
                       </Badge>
                     </TableCell>
-                    <TableCell>{editorial.size_mb} MB</TableCell>
+                    <TableCell>
+                      {editorial.size ? `${(editorial.size / 1024 / 1024).toFixed(1)} MB` : "N/A"}
+                    </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -1209,7 +1242,17 @@ export default function EditorialManagement() {
                             <Eye className="h-4 w-4 mr-2" />
                             View PDF
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer">
+                          <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={() => {
+                              if (editorial.pdf) {
+                                const link = document.createElement('a');
+                                link.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}${editorial.pdf}`;
+                                link.download = `${editorial.title}.pdf`;
+                                link.click();
+                              }
+                            }}
+                          >
                             <Download className="h-4 w-4 mr-2" />
                             Download
                           </DropdownMenuItem>
@@ -1221,7 +1264,7 @@ export default function EditorialManagement() {
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => setDeleteEditorialId(editorial.id)}
+                            onClick={() => setDeleteEditorialId(editorial._id || editorial.id || "")}
                             className="cursor-pointer"
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
@@ -1247,7 +1290,7 @@ export default function EditorialManagement() {
       ) : (
         // Grid View
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {isLoading ? (
+            {loading ? (
             Array.from({ length: 8 }).map((_, index) => (
               <Card key={index} className="overflow-hidden border-gray-300">
                 <Skeleton className="aspect-[3/4] w-full  animate-pulse" />
@@ -1267,15 +1310,18 @@ export default function EditorialManagement() {
           ) : filteredEditorials.length > 0 ? (
             filteredEditorials.map((editorial) => (
               <Card
-                key={editorial.id}
+                key={editorial._id || editorial.id}
                 className="overflow-hidden hover:shadow-2xl transition-all duration-200 border-gray-300 group cursor-pointer "
                 onClick={() => setPreviewEditorial(editorial)}
               >
                 <div className="aspect-[3/4]  relative overflow-hidden">
                   <img
-                    src={editorial.cover_image_url || "/placeholder.svg"}
+                    src={editorial.image ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${editorial.image}` : "/file.svg"}
                     alt={editorial.title}
-                    className="w-auto h-auto object-cover group-hover:scale-105 transition-transform duration-200"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                    onError={(e) => {
+                      e.currentTarget.src = "/file.svg?height=400&width=300";
+                    }}
                   />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200" />
 
@@ -1308,6 +1354,21 @@ export default function EditorialManagement() {
                         <DropdownMenuItem
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (editorial.pdf) {
+                              const link = document.createElement('a');
+                              link.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}${editorial.pdf}`;
+                              link.download = `${editorial.title}.pdf`;
+                              link.click();
+                            }
+                          }}
+                          className="cursor-pointer"
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Download
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
                             handleEditOpen(editorial);
                           }}
                           className="cursor-pointer"
@@ -1318,7 +1379,7 @@ export default function EditorialManagement() {
                         <DropdownMenuItem
                           onClick={(e) => {
                             e.stopPropagation();
-                            setDeleteEditorialId(editorial.id);
+                            setDeleteEditorialId(editorial._id || editorial.id || "");
                           }}
                           className="cursor-pointer"
                         >
@@ -1358,6 +1419,21 @@ export default function EditorialManagement() {
                         <DropdownMenuItem
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (editorial.pdf) {
+                              const link = document.createElement('a');
+                              link.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}${editorial.pdf}`;
+                              link.download = `${editorial.title}.pdf`;
+                              link.click();
+                            }
+                          }}
+                          className="cursor-pointer"
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Download
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
                             handleEditOpen(editorial);
                           }}
                           className="cursor-pointer"
@@ -1368,7 +1444,7 @@ export default function EditorialManagement() {
                         <DropdownMenuItem
                           onClick={(e) => {
                             e.stopPropagation();
-                            setDeleteEditorialId(editorial.id);
+                            setDeleteEditorialId(editorial._id || editorial.id || "");
                           }}
                           className="cursor-pointer"
                         >
@@ -1391,18 +1467,16 @@ export default function EditorialManagement() {
                 <CardContent className="pt-0">
                   <div className="flex justify-between items-center">
                     <Badge
-                      className={`text-xs ${
-                        editorial.status === "Published"
-                          ? "bg-green-600 hover:bg-green-700"
-                          : " hover:bg-gray-300"
-                      }`}
+                      className={`text-xs ${getStatusInfo(editorial.status).color}`}
                     >
-                      {editorial.status}
+                      {getStatusInfo(editorial.status).label}
                     </Badge>
                     <div className="text-right">
-                      <div className="text-xs">{editorial.size_mb} MB</div>
                       <div className="text-xs">
-                        {format(new Date(editorial.date), "MMM dd, yyyy")}
+                        {editorial.size ? `${(editorial.size / 1024 / 1024).toFixed(1)} MB` : "N/A"}
+                      </div>
+                      <div className="text-xs">
+                        {editorial.createdAt ? format(new Date(editorial.createdAt), "MMM dd, yyyy") : "N/A"}
                       </div>
                     </div>
                   </div>
@@ -1479,21 +1553,20 @@ export default function EditorialManagement() {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <div className="space-y-1">
+                  {previewEditorial.excerpt && (
+                    <p className="text-sm text-muted-foreground">{previewEditorial.excerpt}</p>
+                  )}
                   <div className="flex gap-4 text-xs text-muted-foreground">
                     <span>{previewEditorial.category}</span>
                     <span>
-                      {format(new Date(previewEditorial.date), "MMM dd, yyyy")}
+                      {previewEditorial.createdAt ? format(new Date(previewEditorial.createdAt), "MMM dd, yyyy") : "N/A"}
                     </span>
                   </div>
                 </div>
                 <Badge
-                  className={
-                    previewEditorial.status === "Published"
-                      ? "bg-green-600 hover:bg-green-700"
-                      : " hover:bg-gray-300"
-                  }
+                  className={getStatusInfo(previewEditorial.status).color}
                 >
-                  {previewEditorial.status}
+                  {getStatusInfo(previewEditorial.status).label}
                 </Badge>
               </div>
               <div className="border rounded-lg overflow-hidden bg-gray-50">
@@ -1524,7 +1597,7 @@ export default function EditorialManagement() {
                 </div>
                 <div className="flex justify-center p-4 max-h-[60vh] overflow-auto">
                   <Document
-                    file={previewEditorial.file_url}
+                    file={previewEditorial.pdf ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${previewEditorial.pdf}` : null}
                     onLoadSuccess={onDocumentLoadSuccess}
                     loading={
                       <div className="flex items-center justify-center h-96">

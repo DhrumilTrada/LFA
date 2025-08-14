@@ -8,7 +8,7 @@ export enum SelectType {
 export const UserSelectType = {}
 // you can add any query params fields in object
 UserSelectType[SelectType.DEFAULT] = {
-  select: '',
+  select: 'name email createdAt updatedAt avatar role isActive _id',
   populate: ''
 }
 

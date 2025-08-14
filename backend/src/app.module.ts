@@ -30,8 +30,7 @@ import { MagazineModule } from './magazine/magazine.module'
 import { GalleryModule } from './gallery/gallery.module'
 import { EditorialModule } from './editorial/editorial.module'
 import { FormModule } from './form/form.module'
-import { CloudinaryModule } from './cloudinary/cloudinary.module'
-import { CloudinaryConfig } from './config/cloudinary.config'
+import { FileModule } from './file/file.module'
 
 @Module({
   imports: [
@@ -44,8 +43,7 @@ import { CloudinaryConfig } from './config/cloudinary.config'
         SwaggerConfig,
         WebsiteConfig,
         BullConfig,
-        MailConfig,
-        CloudinaryConfig
+        MailConfig
       ]
     }),
 
@@ -162,7 +160,7 @@ import { CloudinaryConfig } from './config/cloudinary.config'
     GalleryModule,
     EditorialModule,
     FormModule,
-    CloudinaryModule,
+    FileModule,
   ],
   controllers: [AppController],
   providers: [AppService]

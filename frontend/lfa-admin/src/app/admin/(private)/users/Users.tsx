@@ -1,11 +1,14 @@
 "use client";
 import { useState, useCallback, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import type { AppDispatch } from "@/app/store";
+import { createUser, deleteUser, getUsers, updateUser } from "@/features/user/userThunks";
+import { RootState } from "@/app/store";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -93,67 +96,11 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
+import { Label } from "@/components/ui/label";
 
-// Mock data for users
-const mockUsers = [
-  {
-    id: 1,
-    name: "Admin User",
-    email: "admin@jlu.ac.in",
-    password_hash: "hashed_password_1",
-    role: "superadmin",
-    status: true,
-    created_at: "2023-01-15",
-    last_active: "2024-03-15",
-    avatar: "/placeholder.svg?height=40&width=40&text=AU",
-  },
-  {
-    id: 2,
-    name: "Priya Sharma",
-    email: "priya@jlu.ac.in",
-    password_hash: "hashed_password_2",
-    role: "editor",
-    status: true,
-    created_at: "2023-02-20",
-    last_active: "2024-03-14",
-    avatar: "/placeholder.svg?height=40&width=40&text=PS",
-  },
-  {
-    id: 3,
-    name: "Arjun Patel",
-    email: "arjun@jlu.ac.in",
-    password_hash: "hashed_password_3",
-    role: "editor",
-    status: true,
-    created_at: "2023-03-10",
-    last_active: "2024-03-13",
-    avatar: "/placeholder.svg?height=40&width=40&text=AP",
-  },
-  {
-    id: 4,
-    name: "Maya Gupta",
-    email: "maya@jlu.ac.in",
-    password_hash: "hashed_password_4",
-    role: "user",
-    status: true,
-    created_at: "2023-04-05",
-    last_active: "2024-03-12",
-    avatar: "/placeholder.svg?height=40&width=40&text=MG",
-  },
-  {
-    id: 5,
-    name: "Rahul Verma",
-    email: "rahul@jlu.ac.in",
-    password_hash: "hashed_password_5",
-    role: "user",
-    status: false,
-    created_at: "2023-05-18",
-    last_active: "2024-02-28",
-    avatar: "/placeholder.svg?height=40&width=40&text=RV",
-  },
-];
 
-const roles = ["All", "superadmin", "editor", "user"];
+
+const roles = ["All", "super-admin", "user"];
 const statusOptions = ["All", "Active", "Inactive"];
 
 interface UserData {
@@ -163,7 +110,7 @@ interface UserData {
   password_hash: string;
   role: string;
   status: boolean;
-  created_at: string;
+  createdAt: string;
   last_active: string;
   avatar: string;
 }
@@ -175,7 +122,8 @@ const addUserSchema = z.object({
     .max(50, "Name must be less than 50 characters"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  role: z.enum(["superadmin", "editor", "user"]),
+  phno: z.string().min(1, "Phone number is required"),
+  role: z.enum(["super-admin", "user"]),
   status: z.boolean(),
 });
 
@@ -185,7 +133,7 @@ const editUserSchema = z.object({
     .min(1, "Name is required")
     .max(50, "Name must be less than 50 characters"),
   email: z.string().email("Invalid email address"),
-  role: z.enum(["superadmin", "editor", "user"]),
+  role: z.enum(["super-admin", "user"]),
   status: z.boolean(),
 });
 
@@ -197,9 +145,12 @@ export default function UserManagement() {
   const [selectedRole, setSelectedRole] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  // Redux
+  const dispatch = useDispatch<AppDispatch>();
+  const userState = useSelector((state: RootState) => state.user);
+  const [users, setUsers] = useState<UserData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [users, setUsers] = useState<UserData[]>(mockUsers);
-  const [filteredUsers, setFilteredUsers] = useState<UserData[]>(mockUsers);
+  const [filteredUsers, setFilteredUsers] = useState<UserData[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [viewUser, setViewUser] = useState<UserData | null>(null);
@@ -209,11 +160,12 @@ export default function UserManagement() {
 
   // React Hook Form setup
   const addForm = useForm<AddUserFormData>({
-    resolver: zodResolver(addUserSchema),
+    resolver: zodResolver(addUserSchema) as any,
     defaultValues: {
       name: "",
       email: "",
       password: "",
+      phno: "",
       role: "user",
       status: true,
     },
@@ -229,22 +181,89 @@ export default function UserManagement() {
     },
   });
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setUsers(mockUsers);
-      setFilteredUsers(mockUsers);
-      setIsLoading(false);
-    }, 800);
+  // Helper to refresh user list from backend
+  const refreshUsers = async () => {
+    setIsLoading(true);
+    const action = await dispatch(getUsers());
+    if (
+      action.payload &&
+      typeof action.payload === "object" &&
+      "data" in action.payload &&
+      action.payload.data &&
+      typeof action.payload.data === "object" &&
+      action.payload.data !== null &&
+      "docs" in action.payload.data &&
+      Array.isArray((action.payload.data as { docs?: unknown }).docs)
+    ) {
+      const docs = (action.payload.data as { docs: any[] }).docs;
+      const mappedUsers = docs.map((user: any) => {
+        const userData = (user && typeof user === "object" && "data" in user && user.data) ? user.data : user;
+        return {
+          id: userData._id || user._id || user.id,
+          name: userData.name || user.name,
+          email: userData.email || user.email,
+          password_hash: '',
+          role: userData.role || user.role,
+          status: userData.isActive ?? user.isActive ?? true,
+          createdAt: userData.createdAt || user.createdAt || '',
+          last_active: userData.last_active || user.last_active || '',
+          avatar: '/placeholder.svg?height=40&width=40&text=' + (userData.name || user.name || '').split(' ').map((n: string) => n[0]).join(''),
+        };
+      });
+      setUsers(mappedUsers);
+      setFilteredUsers(mappedUsers);
+    }
+    setIsLoading(false);
+  };
 
-    return () => clearTimeout(timer);
-  }, []);
+  const handleDelete = async (id: string) => {
+    await dispatch(deleteUser(id));
+    await refreshUsers();
+    setDeleteUserId(null);
+  }
+
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case "super-admin":
+        return "bg-red-500";
+      case "user":
+        return "bg-blue-500";
+      default:
+        return "bg-gray-500";
+    }
+  }
+
+
+  // Fetch users from backend on mount
+  useEffect(() => {
+    setIsLoading(true);
+    dispatch(getUsers()).then((action: any) => {
+      if (action.payload && Array.isArray(action.payload.data.docs)) {
+        // Map backend users to UserData type for frontend
+        const mappedUsers = action?.payload?.data?.docs?.map((user: any) => ({
+          id: user.data?._id || user._id || user.id,
+          name: user.data?.name || user.name,
+          email: user.data?.email || user.email,
+          password_hash: '', // Not returned from backend
+          role: user.data?.role || user.role,
+          status: user.data?.isActive ?? user.isActive ?? true,
+          createdAt: user.data?.createdAt || user.createdAt || '',
+          last_active: user.data?.last_active || user.last_active || '',
+          avatar: '/placeholder.svg?height=40&width=40&text=' + (user.data?.name || user.name || '').split(' ').map((n: string) => n[0]).join(''),
+        }));
+        setUsers(mappedUsers);
+        setFilteredUsers(mappedUsers);
+      }
+      setIsLoading(false);
+    });
+  }, [dispatch]);
 
   // Calculate statistics
   const stats = {
     total: users.length,
     active: users.filter((u) => u.status === true).length,
     editors: users.filter((u) => u.role === "editor").length,
-    superadmins: users.filter((u) => u.role === "superadmin").length,
+    superadmins: users.filter((u) => u.role === "super-admin").length,
   };
 
   // Handle search and filtering
@@ -273,7 +292,7 @@ export default function UserManagement() {
 
       if (dateRange?.from && dateRange?.to) {
         filtered = filtered.filter((user) => {
-          const userDate = new Date(user.created_at);
+          const userDate = new Date(user.createdAt);
           return userDate >= dateRange.from! && userDate <= dateRange.to!;
         });
       }
@@ -298,25 +317,17 @@ export default function UserManagement() {
   };
 
   // Handle add user save
-  const handleAddSave = (data: AddUserFormData) => {
-    const newUser: UserData = {
-      id: Date.now(),
+  const handleAddSave = async (data: AddUserFormData) => {
+    const userInput = {
       name: data.name,
       email: data.email,
-      password_hash: `hashed_${data.password}`,
+      phno: Number(data.phno),
       role: data.role,
-      status: data.status,
-      created_at: new Date().toISOString().split("T")[0],
-      last_active: new Date().toISOString().split("T")[0],
-      avatar: `/placeholder.svg?height=40&width=40&text=${data.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()}`,
+      password: data.password,
+      isActive: data.status,
     };
-
-    setUsers((prev) => [newUser, ...prev]);
-    setFilteredUsers((prev) => [newUser, ...prev]);
+    await dispatch(createUser(userInput));
+    await refreshUsers();
     addForm.reset();
     setIsAddOpen(false);
   };
@@ -327,113 +338,62 @@ export default function UserManagement() {
     setIsAddOpen(false);
   };
 
+
+
   // Handle edit open
   const handleEditOpen = (user: UserData) => {
     setEditingUser(user);
     editForm.reset({
       name: user.name,
       email: user.email,
-      role: user.role as "superadmin" | "editor" | "user",
+      role: user.role as "super-admin" | "user",
       status: user.status,
     });
     setIsEditOpen(true);
   };
 
   // Handle edit save
-  const handleEditSave = (data: EditUserFormData) => {
+  const handleEditSave = async (data: EditUserFormData) => {
     if (!editingUser) return;
-
-    const updatedUser: UserData = {
-      ...editingUser,
+    const updateData = {
       name: data.name,
       email: data.email,
       role: data.role,
-      status: data.status,
+      isActive: data.status,
     };
-
-    setUsers((prev) =>
-      prev.map((user) => (user.id === editingUser.id ? updatedUser : user))
-    );
-    setFilteredUsers((prev) =>
-      prev.map((user) => (user.id === editingUser.id ? updatedUser : user))
-    );
-
-    editForm.reset();
-    setEditingUser(null);
+    await dispatch(updateUser({ userId: String(editingUser.id), data: updateData }));
+    await refreshUsers();
     setIsEditOpen(false);
-  };
-
-  // Handle edit cancel
-  const handleEditCancel = () => {
-    editForm.reset();
     setEditingUser(null);
-    setIsEditOpen(false);
   };
 
-  // Handle delete
-  const handleDelete = (id: number) => {
-    setUsers((prev) => prev.filter((user) => user.id !== id));
-    setFilteredUsers((prev) => prev.filter((user) => user.id !== id));
-    setDeleteUserId(null);
-  };
-
-  const isFilterActive = useCallback(() => {
-    return (
-      searchName.trim() !== "" ||
-      selectedRole !== "All" ||
-      selectedStatus !== "All" ||
-      (dateRange?.from && dateRange?.to)
-    );
-  }, [searchName, selectedRole, selectedStatus, dateRange]);
-
-  // Get role badge color
-  const getRoleBadgeColor = (role: string) => {
+  // Icon for user role
+  function getRoleIcon(role: string) {
     switch (role) {
-      case "superadmin":
-        return "bg-red-600 hover:bg-red-700";
-      case "editor":
-        return "bg-blue-600 hover:bg-blue-700";
-      case "user":
-        return "bg-gray-600 hover:bg-gray-700";
-      default:
-        return "bg-gray-600 hover:bg-gray-700";
-    }
-  };
-
-  // Get role icon
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case "superadmin":
+      case "super-admin":
         return <Crown className="h-3 w-3" />;
-      case "editor":
-        return <Shield className="h-3 w-3" />;
       case "user":
         return <Users className="h-3 w-3" />;
       default:
         return <Users className="h-3 w-3" />;
     }
-  };
+  }
 
-  // Render add form
+
+  // Render add form (single correct implementation)
   const renderAddForm = () => (
     <Form {...addForm}>
-      <form
-        onSubmit={addForm.handleSubmit(handleAddSave)}
-        className="space-y-4"
-      >
+      <form onSubmit={addForm.handleSubmit(handleAddSave)} className="space-y-4">
+
         {/* Name */}
         <FormField
           control={addForm.control}
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Full Name *</FormLabel>
+              <FormLabel>Name</FormLabel>
               <FormControl>
-                <Input
-                  placeholder="e.g., John Doe"
-                  {...field}
-                  className="focus-visible:ring-2 focus-visible:ring-primary"
-                />
+                <Input placeholder="Enter name" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -454,6 +414,21 @@ export default function UserManagement() {
                   {...field}
                   className="focus-visible:ring-2 focus-visible:ring-primary"
                 />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Phone Number */}
+        <FormField
+          control={addForm.control}
+          name="phno"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Phone Number</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter phone number" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -487,18 +462,17 @@ export default function UserManagement() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Role *</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
+              <FormControl>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
-                </FormControl>
                 <SelectContent>
                   <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="editor">Editor</SelectItem>
-                  <SelectItem value="superadmin">Super Admin</SelectItem>
+                    <SelectItem value="super-admin">Super Admin</SelectItem>
                 </SelectContent>
               </Select>
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -518,7 +492,7 @@ export default function UserManagement() {
               </div>
               <FormControl>
                 <Switch
-                  checked={field.value}
+                  checked={!!field.value}
                   onCheckedChange={field.onChange}
                 />
               </FormControl>
@@ -546,6 +520,7 @@ export default function UserManagement() {
       </form>
     </Form>
   );
+
 
   // Render edit form
   const renderEditForm = () => (
@@ -608,8 +583,7 @@ export default function UserManagement() {
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="editor">Editor</SelectItem>
-                  <SelectItem value="superadmin">Super Admin</SelectItem>
+                  <SelectItem value="super-admin">Super Admin</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -650,7 +624,7 @@ export default function UserManagement() {
           <Button
             type="button"
             variant="outline"
-            onClick={handleEditCancel}
+            onClick={handleAddCancel}
             className="flex-1 hover:bg-gray-300 cursor-pointer bg-transparent"
           >
             Cancel
@@ -659,6 +633,15 @@ export default function UserManagement() {
       </form>
     </Form>
   );
+
+  function isFilterActive() {
+    return (
+      searchName.trim() !== "" ||
+      selectedRole !== "All" ||
+      selectedStatus !== "All" ||
+      !!dateRange
+    );
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 pt-0 bg-white min-h-screen">
@@ -784,44 +767,6 @@ export default function UserManagement() {
               </SelectContent>
             </Select>
           </div>
-
-          <div className="w-full sm:w-64">
-            <Label className="text-sm font-medium text-gray-700">
-              Date Range
-            </Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full mt-1 justify-start text-left font-normal bg-white border-gray-300 text-gray-900 hover:bg-gray-50"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange?.from ? (
-                    dateRange.to ? (
-                      <>
-                        {format(dateRange.from, "LLL dd, y")} -{" "}
-                        {format(dateRange.to, "LLL dd, y")}
-                      </>
-                    ) : (
-                      format(dateRange.from, "LLL dd, y")
-                    )
-                  ) : (
-                    <span>Pick a date range</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  initialFocus
-                  mode="range"
-                  defaultMonth={dateRange?.from}
-                  selected={dateRange}
-                  onSelect={setDateRange}
-                  numberOfMonths={2}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2">
@@ -881,7 +826,7 @@ export default function UserManagement() {
                 <TableHead className="text-gray-700">Email</TableHead>
                 <TableHead className="text-gray-700">Role</TableHead>
                 <TableHead className="text-gray-700">Join Date</TableHead>
-                <TableHead className="text-gray-700">Last Active</TableHead>
+                {/* <TableHead className="text-gray-700">Last Active</TableHead> */}
                 <TableHead className="text-gray-700">Status</TableHead>
                 <TableHead className="w-32 text-gray-700">Actions</TableHead>
               </TableRow>
@@ -958,11 +903,11 @@ export default function UserManagement() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-gray-700">
-                      {format(new Date(user.created_at), "MMM dd, yyyy")}
+                      {user.createdAt ? format(new Date(user.createdAt), "MMM dd, yyyy") : "N/A"}
                     </TableCell>
-                    <TableCell className="text-gray-700">
-                      {format(new Date(user.last_active), "MMM dd, yyyy")}
-                    </TableCell>
+                    {/* <TableCell className="text-gray-700">
+                        {user.last_active ? format(new Date(user.last_active), "MMM dd, yyyy") : "N/A"}
+                    </TableCell> */}
                     <TableCell>
                       <Badge
                         className={
@@ -973,9 +918,8 @@ export default function UserManagement() {
                       >
                         <div className="flex items-center gap-1">
                           <div
-                            className={`w-2 h-2 rounded-full ${
-                              user.status ? "bg-green-500" : "bg-red-500"
-                            }`}
+                            className={`w-2 h-2 rounded-full ${user.status ? "bg-green-500" : "bg-red-500"
+                              }`}
                           />
                           {user.status ? "Active" : "Inactive"}
                         </div>
@@ -1084,7 +1028,7 @@ export default function UserManagement() {
                         {user.name}
                       </CardTitle>
                       <CardDescription className="text-xs text-gray-600 line-clamp-1">
-                        {user.email}
+                        {user.email} {user.id}
                       </CardDescription>
                     </div>
                     {/* Actions */}
@@ -1159,16 +1103,15 @@ export default function UserManagement() {
                     >
                       <div className="flex items-center gap-1">
                         <div
-                          className={`w-2 h-2 rounded-full ${
-                            user.status ? "bg-green-500" : "bg-red-500"
-                          }`}
+                          className={`w-2 h-2 rounded-full ${user.status ? "bg-green-500" : "bg-red-500"
+                            }`}
                         />
                         {user.status ? "Active" : "Inactive"}
                       </div>
                     </Badge>
                   </div>
                   <div className="mt-2 text-xs text-gray-500">
-                    Joined {format(new Date(user.created_at), "MMM dd, yyyy")}
+                    Joined {format(new Date(user.createdAt), "MMM dd, yyyy")}
                   </div>
                 </CardContent>
               </Card>
@@ -1214,7 +1157,7 @@ export default function UserManagement() {
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteUserId && handleDelete(deleteUserId)}
+              onClick={() => deleteUserId && handleDelete(String(deleteUserId))}
               className="bg-red-500 hover:bg-red-700 cursor-pointer"
             >
               Delete
@@ -1283,9 +1226,8 @@ export default function UserManagement() {
                     >
                       <div className="flex items-center gap-1">
                         <div
-                          className={`w-2 h-2 rounded-full ${
-                            viewUser.status ? "bg-green-500" : "bg-red-500"
-                          }`}
+                          className={`w-2 h-2 rounded-full ${viewUser.status ? "bg-green-500" : "bg-red-500"
+                            }`}
                         />
                         {viewUser.status ? "Active" : "Inactive"}
                       </div>
@@ -1295,15 +1237,15 @@ export default function UserManagement() {
                 <div>
                   <Label className="text-gray-600">Join Date</Label>
                   <p className="mt-1 text-gray-900">
-                    {format(new Date(viewUser.created_at), "MMM dd, yyyy")}
+                    {format(new Date(viewUser.createdAt), "MMM dd, yyyy")}
                   </p>
                 </div>
-                <div>
-                  <Label className="text-gray-600">Last Active</Label>
-                  <p className="mt-1 text-gray-900">
+                {/* <div> */}
+                {/* <Label className="text-gray-600">Last Active</Label> */}
+                {/* <p className="mt-1 text-gray-900">
                     {format(new Date(viewUser.last_active), "MMM dd, yyyy")}
-                  </p>
-                </div>
+                  </p> */}
+                {/* </div> */}
               </div>
             </div>
           )}

@@ -9,6 +9,7 @@ import { SwaggerConfig } from "./config/swagger.config";
 import { AppConfig } from "./config/app.config";
 import { Logger } from "nestjs-pino";
 import { LoggingConfig } from "./config/logging.config";
+import { join } from 'path';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -24,6 +25,11 @@ async function bootstrap() {
   app.enableCors({
     origin: "http://localhost:3000",
     credentials: true,
+  });
+
+  // Serve static files from public directory
+  app.useStaticAssets(join(__dirname, '..', 'public'), {
+    prefix: '/',
   });
 
   // Apply Global Validation to prevent bad requests
