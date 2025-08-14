@@ -23,8 +23,8 @@ async function bootstrap() {
 
   // enable cors
   app.enableCors({
-    origin: "http://localhost:3000",
-    credentials: true,
+    origin: "*",
+    credentials: false,
   });
 
   // Serve static files from public directory
