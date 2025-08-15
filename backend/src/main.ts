@@ -23,8 +23,16 @@ async function bootstrap() {
 
   // enable cors
   app.enableCors({
-    origin: "*",
-    credentials: false,
+    origin: [
+      "https://lfa-39s00ycop-dhrumiltradas-projects.vercel.app",
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "http://127.0.0.1:3000",
+      "http://127.0.0.1:3001"
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
   });
 
   // Serve static files from public directory
