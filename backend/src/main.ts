@@ -25,11 +25,11 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       "https://lfa-39s00ycop-dhrumiltradas-projects.vercel.app",
+      "https://lfa-git-feature-adminmagazinesetup-dhrumiltradas-projects.vercel.app",
       "http://localhost:3000",
       "http://localhost:3001",
       "http://127.0.0.1:3000",
       "http://127.0.0.1:3001",
-      "http://localhost:3005"
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

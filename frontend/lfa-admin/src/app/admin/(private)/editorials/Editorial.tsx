@@ -4,17 +4,17 @@ import { useState, useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "../../../../components/ui/button";
+import { Input } from "../../../../components/ui/input";
+import { Label } from "../../../../components/ui/label";
+import { Textarea } from "../../../../components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "../../../../components/ui/select";
 import {
   Sheet,
   SheetContent,
@@ -22,13 +22,13 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@/components/ui/sheet";
+} from "../../../../components/ui/sheet";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "../../../../components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,28 +38,28 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "../../../../components/ui/alert-dialog";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar } from "@/components/ui/calendar";
+} from "../../../../components/ui/card";
+import { Skeleton } from "../../../../components/ui/skeleton";
+import { Calendar } from "../../../../components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { Badge } from "@/components/ui/badge";
+} from "../../../../components/ui/popover";
+import { Badge } from "../../../../components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "../../../../components/ui/dropdown-menu";
 import {
   Form,
   FormControl,
@@ -67,7 +67,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
+} from "../../../../components/ui/form";
 import {
   Table,
   TableBody,
@@ -75,7 +75,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "../../../../components/ui/table";
 import {
   Upload,
   Search,
@@ -97,9 +97,9 @@ import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from "@/app/store";
-import { getEditorials, createEditorial, updateEditorial, deleteEditorial } from "@/features/editorial/editorialThunks";
-import { Editorial } from "@/features/editorial/editorialSlice";
+import { AppDispatch, RootState } from "../../../store";
+import { getEditorials, createEditorial, updateEditorial, deleteEditorial } from "../../../../features/editorial/editorialThunks";
+import { Editorial } from "../../../../features/editorial/editorialSlice";
 
 // Set up PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.mjs";
