@@ -95,6 +95,7 @@ async function bootstrap() {
   // Use new stream in express
 
   await app.listen(3005);
+  console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();
 
