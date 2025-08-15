@@ -1,16 +1,14 @@
 FROM node:20-alpine
 
-# RUN npm install --global rimraf && npm install --global parcel-bundler
+WORKDIR /app
 
-WORKDIR /nestjs-base-project
+RUN apk update && apk add rsync
 
-RUN apt-get update && apt-get install rsync -y
-
-COPY package*.json /nestjs-base-project
+COPY package*.json /app/
 
 RUN npm install
 
-COPY . /nestjs-base-project
+COPY . /app/
 
 ENV NODE_OPTIONS=--max_old_space_size=4096
 
