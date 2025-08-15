@@ -37,10 +37,9 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @ApiOperation({ summary: 'User Login' })
-  @UseGuards(LocalAuthGuard, ThrottlerGuard)
+  @UseGuards(LocalAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('auth/login')
-  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiBody({ type: UserLoginDto })
   @ResponseMessage(AuthResponseMessages.LOGIN_SUCCESS)
   async login(
