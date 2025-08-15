@@ -5,7 +5,7 @@ import { Gallery, GalleryDocument } from './schemas/gallery.schema';
 import { CreateGalleryDto } from './dto/create-gallery.dto';
 import { UpdateGalleryDto } from './dto/update-gallery.dto';
 import { GalleryPaginationQuery } from './filters/gallery.filter';
-import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { FileService } from '../file/file.service';
 
 @Injectable()
 export class GalleryService {
@@ -13,18 +13,18 @@ export class GalleryService {
 
   constructor(
     @InjectModel(Gallery.name) public galleryModel: Model<GalleryDocument>,
-    private readonly cloudinaryService: CloudinaryService,
+    private readonly fileService: FileService,
   ) {}
 
   async create(createGalleryDto: CreateGalleryDto, userId: string) {
     let imageUrl = createGalleryDto.image;
     let size = 0;
     if (createGalleryDto.image && Buffer.isBuffer(createGalleryDto.image)) {
-      const result = await this.cloudinaryService.uploadFile(createGalleryDto.image, 'gallery-image', 'image/jpeg');
+      const result = await this.fileService.saveFile(createGalleryDto.image, 'gallery-image.jpg', 'gallery', 'image/jpeg');
       imageUrl = result.url;
       size = result.size;
     }
-    const created = new this.galleryModel({ ...createGalleryDto, image: imageUrl, size, createdBy: userId });
+    const created = new this.galleryModel({ ...createGalleryDto, image: imageUrl, size, createdBy: userId, createdAt: new Date() });
     return created.save();
   }
 
@@ -41,7 +41,7 @@ export class GalleryService {
     let imageUrl = updateGalleryDto.image;
     let size = 0;
     if (updateGalleryDto.image && Buffer.isBuffer(updateGalleryDto.image)) {
-      const result = await this.cloudinaryService.uploadFile(updateGalleryDto.image, 'gallery-image', 'image/jpeg');
+      const result = await this.fileService.saveFile(updateGalleryDto.image, 'gallery-image.jpg', 'gallery', 'image/jpeg');
       imageUrl = result.url;
       size = result.size;
     }
@@ -54,5 +54,21 @@ export class GalleryService {
 
   async remove(id: string) {
     return this.galleryModel.findByIdAndDelete(id).exec();
+  }
+
+  async getCategories() {
+    const categories = await this.galleryModel.distinct('category').exec();
+    return [
+      { key: "Travel", value: "travel" },
+      { key: "Nature", value: "nature" },
+      { key: "Architecture", value: "architecture" },
+      { key: "People", value: "people" },
+      { key: "Animals", value: "animals" },
+      { key: "Food", value: "food" },
+      { key: "Sports", value: "sports" },
+      { key: "Technology", value: "technology" },
+      { key: "Art", value: "art" },
+      { key: "Music", value: "music" },
+    ];
   }
 }

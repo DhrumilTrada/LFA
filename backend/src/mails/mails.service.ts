@@ -16,8 +16,6 @@ export class MailsService {
 
   //template test mail
   async sendMail(email: string, name: string) {
-    console.log(email)
-    console.log(__dirname)
 
     await this.mailerService.sendMail({
       to: email,

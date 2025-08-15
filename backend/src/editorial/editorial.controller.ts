@@ -10,7 +10,9 @@ import {
   UseGuards,
   Logger,
   UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { EditorialService } from './editorial.service';
 import { CreateEditorialDto } from './dto/create-editorial.dto';
 import { UpdateEditorialDto } from './dto/update-editorial.dto';
@@ -30,13 +32,18 @@ export class EditorialController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ResponseMessage('Editorial created successfully')
+  @UseInterceptors(FileFieldsInterceptor([
+    { name: 'image', maxCount: 1 },
+    { name: 'pdf', maxCount: 1 }
+  ]))
   @Post()
   create(
     @Body() createEditorialDto: CreateEditorialDto,
+    @UploadedFiles() files: any,
     // @UserId() userId: string // Uncomment if you have user context
   ) {
     this.logger.log('inside create editorial controller');
-    return this.editorialService.create(createEditorialDto, null); // Replace null with userId if available
+    return this.editorialService.create(createEditorialDto, files, null); // Replace null with userId if available
   }
 
   @ApiOperation({ summary: 'Get a list of editorials' })
@@ -58,13 +65,18 @@ export class EditorialController {
   @ApiOperation({ summary: 'Update an editorial' })
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
+  @UseInterceptors(FileFieldsInterceptor([
+    { name: 'image', maxCount: 1 },
+    { name: 'pdf', maxCount: 1 }
+  ]))
   @Patch(':id')
   update(
     @Param('id') id: string,
     @Body() updateEditorialDto: UpdateEditorialDto,
+    @UploadedFiles() files: any,
     // @UserId() userId: string // Uncomment if you have user context
   ) {
-    return this.editorialService.update(id, updateEditorialDto, null); // Replace null with userId if available
+    return this.editorialService.update(id, updateEditorialDto, files, null); // Replace null with userId if available
   }
 
   @ApiOperation({ summary: 'Delete an editorial' })

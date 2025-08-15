@@ -30,9 +30,6 @@ export class UserPaginationQuery
   selectType: string = SelectType.DEFAULT
 
   public getPaginationOptions() {
-    console.log('get pagination option query')
-    console.log({ ...this.getDefaultPaginationOptions() })
-    console.log('select type value', { ...UserSelectType[this.selectType] })
 
     return {
       ...this.getDefaultPaginationOptions(),

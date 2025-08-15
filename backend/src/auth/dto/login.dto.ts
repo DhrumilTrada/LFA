@@ -8,7 +8,7 @@ export class UserLoginDto {
   @IsString()
   @IsEmail()
   @Transform(({ value }) => value.toLowerCase())
-  username: string
+  email: string
 
   @ApiProperty({ example: 'admin@123' })
   @IsNotEmpty()

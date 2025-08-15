@@ -26,6 +26,15 @@ export class Editorial {
   @Prop()
   featured?: boolean;
 
+  @Prop()
+  image?: string;
+
+  @Prop()
+  pdf?: string;
+
+  @Prop()
+  size?: number;
+
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', select: false })
   createdBy: any;
 

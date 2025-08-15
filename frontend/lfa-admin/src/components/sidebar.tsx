@@ -58,6 +58,11 @@ export const sidebarData = {
       url: "/admin/editorials",
       icon: Edit,
     },
+    {
+      title: "Forms",
+      url: "/admin/forms",
+      icon: Edit,
+    },
   ],
 };
 

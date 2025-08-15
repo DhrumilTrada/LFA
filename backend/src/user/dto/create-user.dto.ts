@@ -4,7 +4,9 @@ import {
   IsNumber,
   IsNotEmpty,
   MinLength,
-  ValidateIf
+  ValidateIf,
+  IsString,
+  IsBoolean
 } from 'class-validator'
 import { Role } from '../../auth/roles/roles'
 import { ApiProperty } from '@nestjs/swagger'
@@ -20,26 +22,21 @@ export class CreateUserDto {
   @Transform(({ value }) => value.toLowerCase())
   email: string
 
-  // @MinLength(6, {
-  //   message: 'Password must be 6 or more characters long'
-  // })
-  // password: string
-
-  //   @ValidateIf((o) => o.role === 'admin')
-  //   @IsNotEmpty()
-  //   data: string
-
   @ApiProperty({ example: 1234567890 })
   @IsNumber()
   phno: number
 
-  /**
-   * A list of user's roles
-   * @example['admin', 'user']
-   */
   @ApiProperty({ example: 'user' })
   @IsIn([Role.SUPER_ADMIN, Role.USER, Role.ADMIN], {
     message: 'Invalid role provided'
   })
   role: string
+
+  @IsString()
+  @MinLength(8)
+  @ValidateIf((o) => o.password !== null)
+  password: string
+
+  @IsBoolean()
+  isActive: boolean
 }

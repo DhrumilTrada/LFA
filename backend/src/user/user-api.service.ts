@@ -47,24 +47,13 @@ export class UsersApiService {
     createUserDto['resetPasswordToken'] =
       this.authService.createResetPasswordToken(createUserDto)
     createUserDto['password'] = null
-
-    // // Update the password with bcrypt
-    // const saltOrRounds = 10
-    // createUserDto.password = await bcrypt.hash(
-    //   createUserDto.password,
-    //   saltOrRounds
-    // )
-
-    // Convert to the user document
-    // console.log('from the body:-', createUserDto.role)
-    console.log('createUserDto:-', createUserDto)
-
+    
     const loginUserRole = userRole
     createUserDto.email = createUserDto.email.toLowerCase()
     const user = new this.userModel(createUserDto)
 
     // Not add any method in Super Admin
-    if (loginUserRole === Role.ADMIN) {
+    if (loginUserRole === Role.ADMIN || loginUserRole === Role.SUPER_ADMIN) {
       if (
         user.role === Role.SUPER_ADMIN &&
         ![Role.ADMIN, Role.USER].includes(user.role)
@@ -85,7 +74,7 @@ export class UsersApiService {
 
     const resetPasswordRequestDto = new ResetPasswordRequestDto()
     resetPasswordRequestDto.email = user.email
-    await this.authService.resetPasswordRequest(resetPasswordRequestDto)
+    // await this.authService.resetPasswordRequest(resetPasswordRequestDto)
 
     const newUser = await this.userModel
       .findOne({ _id: user._id })
@@ -160,17 +149,10 @@ export class UsersApiService {
   async findAll(params: UserPaginationQuery, userRole) {
 
     const filters = this.getFilterParams(params.filter, userRole)
-    const cacheKey = `users:${JSON.stringify(params)}`
-    const cachedData = await this.cacheService.get(cacheKey)
-    if (cachedData && Object.keys(cachedData).length > 0) {
-      console.log('cached data', cachedData)
-      return cachedData
-    }
     const user = await this.userModel.paginate(
       filters,
       params.getPaginationOptions()
     )
-    await this.cacheService.set(cacheKey, user)
     return user
   }
 
@@ -232,7 +214,6 @@ export class UsersApiService {
       filter['role'] = 'user'
     }
 
-    console.log('filter:-', filter)
     return filter
   }
 
@@ -262,6 +243,7 @@ export class UsersApiService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto, userData, userRole) {
+    console.log("User data in update function: ", userData)
     if (updateUserDto.password) {
       const saltOrRounds = 10
       updateUserDto.password = await bcrypt.hash(
@@ -274,7 +256,7 @@ export class UsersApiService {
 
     const loginUserRole = userRole
 
-    if (loginUserRole === Role.ADMIN) {
+    if (loginUserRole === Role.ADMIN || loginUserRole === Role.SUPER_ADMIN) {
       if (
         updateUserDto.role === Role.SUPER_ADMIN &&
         ![Role.ADMIN, Role.USER].includes(updateUserDto.role)

@@ -58,7 +58,6 @@ export class MagazineController {
   // @ApiBearerAuth('access-token')
   @Get()
   findAll(@Query() query: MagazinePaginationQuery) {
-    console.log("Pararms", query);
     return this.magazineService.findAll(query);
   }
 
@@ -74,12 +73,22 @@ export class MagazineController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @Patch(':id')
-  update(
+  @UseInterceptors(
+    FileFieldsInterceptor([{ name: 'image', maxCount: 1 }, { name: 'pdf', maxCount: 1 }])
+  )
+  async update(
     @Param('id') id: string,
+    @UploadedFiles() files: { image?: MulterFile[]; pdf?: MulterFile[]; },
     @Body() updateMagazineDto: UpdateMagazineDto,
-    // @UserId() userId: string // Uncomment if you have user context
+    @UserId() userId: string
   ) {
-    return this.magazineService.update(id, updateMagazineDto, null); // Replace null with userId if available
+    if (files.image?.[0]) {
+      updateMagazineDto.image = files.image[0].buffer;
+    }
+    if (files.pdf?.[0]) {
+      updateMagazineDto.pdf = files.pdf[0].buffer;
+    }
+    return this.magazineService.update(id, updateMagazineDto, userId);
   }
 
   @ApiOperation({ summary: 'Delete a magazine' })

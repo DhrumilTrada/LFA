@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import type { AppDispatch, RootState } from "@/app/store";
+import { loginThunk } from "@/features/auth/authThunks";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -27,7 +30,10 @@ import { LoginSchema } from "@/utils/validations/AuthSchema";
 export type LoginForm = z.infer<typeof LoginSchema>;
 
 function LoginPage() {
+
   const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
+  const auth = useSelector((state: RootState) => state.auth);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -35,20 +41,27 @@ function LoginPage() {
   const form = useForm<LoginForm>({
     resolver: zodResolver(LoginSchema),
     defaultValues: {
-      email: "",
+      username: "",
       password: "",
     },
   });
 
+
   async function onSubmit(data: LoginForm) {
     setLoading(true);
     setErrorMessage(null);
-
     try {
-      console.log("Form submitted with data:", data);
-
-      await new Promise((res) => setTimeout(res, 1500));
-      router.push("/admin/dashboard");
+      const payload = { username: data.username, password: data.password };
+      const resultAction = await dispatch(loginThunk(payload));
+      if (loginThunk.fulfilled.match(resultAction)) {
+        const { accessToken } = resultAction?.payload?.data || {};
+        if (accessToken) {
+          localStorage.setItem("token", accessToken);
+        }
+        router.push("/admin/dashboard");
+      } else {
+        setErrorMessage("Login failed. Please check your credentials.");
+      }
     } catch (error) {
       setErrorMessage("Login failed. Please check your credentials.");
     } finally {
@@ -77,7 +90,7 @@ function LoginPage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="email"
+                name="username"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-gray-700 font-medium">
@@ -142,12 +155,12 @@ function LoginPage() {
 
               <Button
                 type="submit"
-                // disabled={loading}
+                disabled={loading || auth.loading}
                 className={`w-full h-11 bg-blue-500 hover:bg-blue-600 text-white font-bold transition-colors duration-200 ${
-                  loading ? "opacity-65 cursor-not-allowed" : "cursor-pointer"
+                  loading || auth.loading ? "opacity-65 cursor-not-allowed" : "cursor-pointer"
                 }`}
               >
-                {loading ? (
+                {loading || auth.loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
                     Signing in...
