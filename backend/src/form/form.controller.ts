@@ -15,6 +15,7 @@ import { UpdateFormDto } from './dto/update-form.dto';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ResponseMessage } from '../helpers/response-mapping/response.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { UserId } from 'src/auth/decorators/user.decorator';
 
 @ApiTags('Form')
 @Controller('forms')
@@ -30,10 +31,10 @@ export class FormController {
   @Post()
   create(
     @Body() createFormDto: CreateFormDto,
-    // @UserId() userId: string // Uncomment if you have user context
+    @UserId() userId: string
   ) {
     this.logger.log('inside create form controller');
-    return this.formService.create(createFormDto, null); // Replace null with userId if available
+    return this.formService.create(createFormDto, userId);
   }
 
   @ApiOperation({ summary: 'Get a list of forms' })
@@ -59,9 +60,9 @@ export class FormController {
   update(
     @Param('id') id: string,
     @Body() updateFormDto: UpdateFormDto,
-    // @UserId() userId: string // Uncomment if you have user context
+    @UserId() userId: string
   ) {
-    return this.formService.update(id, updateFormDto, null); // Replace null with userId if available
+    return this.formService.update(id, updateFormDto, userId);
   }
 
   @ApiOperation({ summary: 'Delete a form' })

@@ -4,6 +4,8 @@ import type React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "@/app/store";
 import { fetchGalleries, createGallery, updateGallery, deleteGallery, fetchCategories } from "@/features/gallery/galleryThunks";
+import { toastSuccess, toastError } from "@/services/toastService";
+import { toast } from "sonner";
   import { useForm } from "react-hook-form";
   import { zodResolver } from "@hookform/resolvers/zod";
   import * as z from "zod";
@@ -122,7 +124,7 @@ import type { Gallery, Category } from "@/features/gallery/gallerySlice";
 
   export default function Page() {
     const dispatch = useDispatch<AppDispatch>();
-    const { galleries, categories, loading, error } = useSelector((state: RootState) => {
+    const { galleries, categories, loading, creating, updating, deleting, error } = useSelector((state: RootState) => {
       return state.gallery;
     });
 
@@ -182,6 +184,13 @@ import type { Gallery, Category } from "@/features/gallery/gallerySlice";
     useEffect(() => {
       setFilteredImages(galleries);
     }, [galleries]);
+
+    // Handle errors from Redux state
+    useEffect(() => {
+      if (error) {
+        toastError.error("Operation failed", error);
+      }
+    }, [error]);
 
     // Update form default categories when categories are loaded
     useEffect(() => {
@@ -274,20 +283,24 @@ import type { Gallery, Category } from "@/features/gallery/gallerySlice";
 
     // Handle upload save
     const handleUploadSave = async (data: UploadFormData) => {
-      // Map form data to Gallery DTO
-      const galleryData = {
-        title: data.title,
-        description: data.description,
-        category: data.category,
-        image: data.image,
-        year: new Date().getFullYear(),
-      };
-      const result = await dispatch(createGallery(galleryData as any));
-      if (createGallery.fulfilled.match(result)) {
-        uploadForm.reset();
-        setIsUploadOpen(false);
-        // Refresh galleries after successful creation
-        dispatch(fetchGalleries());
+      try {
+        // Map form data to Gallery DTO
+        const galleryData = {
+          title: data.title,
+          description: data.description,
+          category: data.category,
+          image: data.image,
+          year: new Date().getFullYear(),
+        };
+
+        const result = await dispatch(createGallery(galleryData as any));
+
+        if (createGallery.fulfilled.match(result)) {
+          uploadForm.reset();
+          setIsUploadOpen(false);
+        }
+      } catch (error) {
+      // Error handling is done in the service layer
       }
     };
 
@@ -312,24 +325,29 @@ import type { Gallery, Category } from "@/features/gallery/gallerySlice";
     // Handle edit save
     const handleEditSave = async (data: EditFormData) => {
       if (!editingImage) return;
-      // Always send a valid id for update
-      const id = editingImage._id || editingImage.id;
-      const galleryData = {
-        ...editingImage,
-        id, // ensure id is present
-        title: data.title,
-        description: data.description,
-        category: data.category,
-        image: data.image,
-      };
-      const result = await dispatch(updateGallery(galleryData as any));
-      if (updateGallery.fulfilled.match(result)) {
-        editForm.reset();
-        setEditingImage(null);
-        setEditImagePreview(null);
-        setIsEditOpen(false);
-        // Refresh galleries after successful update
-        dispatch(fetchGalleries());
+
+      try {
+        // Always send a valid id for update
+        const id = editingImage._id || editingImage.id;
+        const galleryData = {
+          ...editingImage,
+          id, // ensure id is present
+          title: data.title,
+          description: data.description,
+          category: data.category,
+          image: data.image,
+        };
+
+        const result = await dispatch(updateGallery(galleryData as any));
+
+        if (updateGallery.fulfilled.match(result)) {
+          editForm.reset();
+          setEditingImage(null);
+          setEditImagePreview(null);
+          setIsEditOpen(false);
+        }
+      } catch (error) {
+      // Error handling is done in the service layer
       }
     };
 
@@ -348,11 +366,14 @@ import type { Gallery, Category } from "@/features/gallery/gallerySlice";
 
     // Handle delete
     const handleDelete = async (id: string) => {
-      const result = await dispatch(deleteGallery(id));
-      if (deleteGallery.fulfilled.match(result)) {
-        setDeleteImageId(null);
-        // Refresh galleries after successful deletion
-        dispatch(fetchGalleries());
+      try {
+        const result = await dispatch(deleteGallery(id));
+
+        if (deleteGallery.fulfilled.match(result)) {
+          setDeleteImageId(null);
+        }
+      } catch (error) {
+      // Error handling is done in the service layer
       }
     };
 
@@ -494,8 +515,9 @@ import type { Gallery, Category } from "@/features/gallery/gallerySlice";
             <Button
               type="submit"
               className="flex-1 bg-blue-600 hover:bg-blue-700 cursor-pointer"
+              disabled={creating}
             >
-              Save
+              {creating ? "Uploading..." : "Upload Gallery Item"}
             </Button>
             <Button
               type="button"
@@ -667,8 +689,9 @@ import type { Gallery, Category } from "@/features/gallery/gallerySlice";
             <Button
               type="submit"
               className="flex-1 bg-blue-600 hover:bg-blue-700 cursor-pointer"
+              disabled={updating}
             >
-              Update
+              {updating ? "Updating..." : "Update Gallery Item"}
             </Button>
             <Button
               type="button"

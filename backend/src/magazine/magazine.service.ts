@@ -31,8 +31,6 @@ export class MagazineService {
       const result = await this.fileService.saveFile(createMagazineDto.pdf, 'magazine.pdf', 'magazines', 'application/pdf');
       pdfUrl = result.url;
       size += result.size;
-
-      console.log(pdfUrl, "Pdf saved to url");
     }
     const created = new this.magazineModel({ ...createMagazineDto, image: imageUrl, pdf: pdfUrl, size, createdBy: userId });
     return created.save();
@@ -50,15 +48,22 @@ export class MagazineService {
   async update(id: string, updateMagazineDto: UpdateMagazineDto, userId: string) {
     let imageUrl = updateMagazineDto.image;
     let pdfUrl = updateMagazineDto.pdf;
-    let size = 0;
+    const magazine = await this.magazineModel.findById(id).exec();
+    let size = magazine.size || 0;
     if (updateMagazineDto.image && Buffer.isBuffer(updateMagazineDto.image)) {
       const result = await this.fileService.saveFile(updateMagazineDto.image, 'magazine-image.jpg', 'magazines', 'image/jpeg');
+      await this.fileService.deleteFile(magazine.image);
       imageUrl = result.url;
+      const previousImageLocation = magazine.image;
+      size -= (await this.fileService.getFileSize(previousImageLocation, 'magazines', 'image/jpeg')) || 0;
       size += result.size;
     }
     if (updateMagazineDto.pdf && Buffer.isBuffer(updateMagazineDto.pdf)) {
       const result = await this.fileService.saveFile(updateMagazineDto.pdf, 'magazine.pdf', 'magazines', 'application/pdf');
+      await this.fileService.deleteFile(magazine.pdf);
       pdfUrl = result.url;
+      const previousPdfLocation = magazine.pdf;
+      size -= (await this.fileService.getFileSize(previousPdfLocation, 'magazines', 'application/pdf')) || 0;
       size += result.size;
     }
     return this.magazineModel.findByIdAndUpdate(
@@ -69,6 +74,9 @@ export class MagazineService {
   }
 
   async remove(id: string) {
-    return this.magazineModel.findByIdAndDelete(id).exec();
+    const magazine = await this.magazineModel.findByIdAndDelete(id).exec();
+    await this.fileService.deleteFile(magazine.image);
+    await this.fileService.deleteFile(magazine.pdf);
+    return magazine;
   }
 }

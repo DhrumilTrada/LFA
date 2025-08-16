@@ -1,65 +1,75 @@
-import axios from 'axios';
+import { axiosInstance } from './tokenService';
 import { Gallery } from '../features/gallery/gallerySlice';
-import { useAccessToken } from '../hooks/useAccessToken';
+import { toastSuccess, toastError } from './toastService';
 
 const API_URL = 'galleries';
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-
-
-// Helper to get auth headers
-const getAuthHeaders = () => {
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('token');
-    if (token) {
-      return { Authorization: `Bearer ${token}` };
-    }
-  }
-  return {};
-};
 
 const getGalleries = async () => {
-  const response = await axios.get(`${API_BASE_URL}/${API_URL}`, {
-    headers: getAuthHeaders(),
-  });
-  return response.data.data?.docs || response.data.data || response.data;
+  try {
+    const response = await axiosInstance.get(`/${API_URL}`);
+    return response.data.data?.docs || response.data.data || response.data;
+  } catch (error: any) {
+    toastError.galleryFetchError();
+    throw error;
+  }
 };
 
 const createGallery = async (data: Gallery) => {
-  const formData = new FormData();
-  if (data.image) formData.append('image', data.image);
-  formData.append('title', data.title);
-  formData.append('category', data.category);
-  if (data.description) formData.append('description', data.description);
-  const response = await axios.post(`${API_BASE_URL}/${API_URL}`, formData, {
-    headers: getAuthHeaders(),
-  });
-  return response.data;
+  try {
+    const formData = new FormData();
+    if (data.image) formData.append('image', data.image);
+    formData.append('title', data.title);
+    formData.append('category', data.category);
+    if (data.description) formData.append('description', data.description);
+    
+    const response = await axiosInstance.post(`/${API_URL}`, formData);
+    toastSuccess.galleryItemCreated();
+    return response.data;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || 'Failed to create gallery item';
+    toastError.galleryCreateError(errorMessage);
+    throw error;
+  }
 };
 
 const updateGallery = async (data: Gallery) => {
-  const formData = new FormData();
-  if (data.image) formData.append('image', data.image);
-  formData.append('title', data.title);
-  formData.append('category', data.category);
-  if (data.description) formData.append('description', data.description);
-  const response = await axios.patch(`${API_BASE_URL}/${API_URL}/${data.id}`, formData, {
-    headers: getAuthHeaders(),
-  });
-  return response.data;
+  try {
+    const formData = new FormData();
+    if (data.image) formData.append('image', data.image);
+    formData.append('title', data.title);
+    formData.append('category', data.category);
+    if (data.description) formData.append('description', data.description);
+    
+    const response = await axiosInstance.patch(`/${API_URL}/${data.id}`, formData);
+    toastSuccess.galleryItemUpdated();
+    return response.data;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || 'Failed to update gallery item';
+    toastError.galleryUpdateError(errorMessage);
+    throw error;
+  }
 };
 
 const deleteGallery = async (id: string) => {
-  const response = await axios.delete(`${API_BASE_URL}/${API_URL}/${id}`, {
-    headers: getAuthHeaders(),
-  });
-  return response.data;
+  try {
+    const response = await axiosInstance.delete(`/${API_URL}/${id}`);
+    toastSuccess.galleryItemDeleted();
+    return response.data;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || 'Failed to delete gallery item';
+    toastError.galleryDeleteError(errorMessage);
+    throw error;
+  }
 };
 
 const getCategories = async () => {
-  const response = await axios.get(`${API_BASE_URL}/${API_URL}/categories/list`, {
-    headers: getAuthHeaders(),
-  });
-  return response.data.data || response.data;
+  try {
+    const response = await axiosInstance.get(`/${API_URL}/categories/list`);
+    return response.data.data || response.data;
+  } catch (error: any) {
+    toastError.error('Failed to load categories', 'There was an error loading the gallery categories.');
+    throw error;
+  }
 };
 
 const galleryService = {

@@ -1,19 +1,10 @@
 import { useCallback } from 'react';
+import { getStoredTokens } from '../services/tokenService';
 
 // Custom hook to get access token from localStorage
 export function useAccessToken() {
   return useCallback(() => {
-    if (typeof window !== 'undefined') {
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        try {
-          const user = JSON.parse(userStr);
-          return user?.access || null;
-        } catch {
-          return null;
-        }
-      }
-    }
-    return null;
+    const { accessToken } = getStoredTokens();
+    return accessToken;
   }, []);
 }

@@ -57,15 +57,18 @@ export class EditorialService {
   }
 
   async update(id: string, updateEditorialDto: UpdateEditorialDto, files: any, userId: string) {
-    let imageUrl = undefined;
-    let pdfUrl = undefined;
-    let size = 0;
+    const editorial = await this.editorialModel.findById(id).exec();
+    let imageUrl = editorial.image;
+    let pdfUrl = editorial.pdf;
+    let size = editorial.size || 0;
 
     // Handle image upload
     if (files?.image && files.image[0]) {
       const imageFile = files.image[0];
       const result = await this.fileService.saveFile(imageFile.buffer, imageFile.originalname, 'editorials', imageFile.mimetype);
+      await this.fileService.deleteFile(editorial.image);
       imageUrl = result.url;
+      size -= (await this.fileService.getFileSize(editorial.image, 'editorials', imageFile.mimetype)) || 0;
       size += result.size;
     }
 
@@ -73,7 +76,9 @@ export class EditorialService {
     if (files?.pdf && files.pdf[0]) {
       const pdfFile = files.pdf[0];
       const result = await this.fileService.saveFile(pdfFile.buffer, pdfFile.originalname, 'editorials', pdfFile.mimetype);
+      await this.fileService.deleteFile(editorial.pdf);
       pdfUrl = result.url;
+      size -= (await this.fileService.getFileSize(editorial.pdf, 'editorials', pdfFile.mimetype)) || 0;
       size += result.size;
     }
 
@@ -90,6 +95,9 @@ export class EditorialService {
   }
 
   async remove(id: string) {
-    return this.editorialModel.findByIdAndDelete(id).exec();
+    const editorial = await this.editorialModel.findByIdAndDelete(id).exec();
+    await this.fileService.deleteFile(editorial.image);
+    await this.fileService.deleteFile(editorial.pdf);
+    return editorial;
   }
 }

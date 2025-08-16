@@ -19,7 +19,8 @@ import { UpdateEditorialDto } from './dto/update-editorial.dto';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ResponseMessage } from '../helpers/response-mapping/response.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { EditorialPaginationQuery, EditorialSelectTypeQuery } from './filters/editorial.filter';
+import { EditorialPaginationQuery } from './filters/editorial.filter';
+import { UserId } from 'src/auth/decorators/user.decorator';
 
 @ApiTags('Editorial')
 @Controller('editorials')
@@ -40,10 +41,10 @@ export class EditorialController {
   create(
     @Body() createEditorialDto: CreateEditorialDto,
     @UploadedFiles() files: any,
-    // @UserId() userId: string // Uncomment if you have user context
+    @UserId() userId: string
   ) {
     this.logger.log('inside create editorial controller');
-    return this.editorialService.create(createEditorialDto, files, null); // Replace null with userId if available
+    return this.editorialService.create(createEditorialDto, files, userId);
   }
 
   @ApiOperation({ summary: 'Get a list of editorials' })
@@ -74,9 +75,9 @@ export class EditorialController {
     @Param('id') id: string,
     @Body() updateEditorialDto: UpdateEditorialDto,
     @UploadedFiles() files: any,
-    // @UserId() userId: string // Uncomment if you have user context
+    @UserId() userId: string
   ) {
-    return this.editorialService.update(id, updateEditorialDto, files, null); // Replace null with userId if available
+    return this.editorialService.update(id, updateEditorialDto, files, userId);
   }
 
   @ApiOperation({ summary: 'Delete an editorial' })

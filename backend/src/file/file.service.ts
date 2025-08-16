@@ -75,4 +75,15 @@ export class FileService {
       return false;
     }
   }
+
+  async getFileSize(relativePath: string, folder: string, mimetype: string): Promise<number> {
+    try {
+      const cleanPath = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath;
+      const fullPath = join(process.cwd(), 'public', cleanPath);
+      const stats = await fs.stat(fullPath);
+      return stats.size;
+    } catch (error) {
+      return 0;
+    }
+  }
 }

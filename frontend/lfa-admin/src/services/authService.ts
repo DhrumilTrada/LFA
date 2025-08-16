@@ -1,6 +1,5 @@
-import axios from 'axios';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+import { axiosInstance, clearStoredTokens } from './tokenService';
+import { toastSuccess, toastError } from './toastService';
 
 export interface LoginPayload {
   username: string;
@@ -15,14 +14,61 @@ export interface LoginResponse {
   };
 }
 
+export interface RefreshTokenResponse {
+  data: {
+    accessToken: string;
+    refreshToken?: string;
+  };
+}
+
 export const login = async (payload: LoginPayload): Promise<LoginResponse> => {
-  const response = await axios.post(
-    `${API_BASE_URL}/auth/login`,
-    payload,
+  try {
+    const response = await axiosInstance.post(
+      '/auth/login',
+      payload,
+      {
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      }
+    );
+    toastSuccess.loginSuccess();
+    return response.data;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || 'Login failed';
+    toastError.loginError(errorMessage);
+    throw error;
+  }
+};
+
+export const refreshToken = async (refreshTokenValue: string): Promise<RefreshTokenResponse> => {
+  const response = await axiosInstance.post(
+    '/auth/refresh',
+    { refreshToken: refreshTokenValue },
     {
       headers: { 'Content-Type': 'application/json; charset=utf-8' },
-      withCredentials: true,
     }
   );
   return response.data;
+};
+
+export const logout = async (): Promise<void> => {
+  try {
+    await axiosInstance.post('/auth/logout');
+    toastSuccess.logoutSuccess();
+  } catch (error) {
+    console.error('Logout error:', error);
+    toastError.logoutError();
+  } finally {
+    clearStoredTokens();
+  }
+};
+
+export const getUserProfile = async () => {
+  try {
+    const response = await axiosInstance.get('/auth/user');
+    return response.data;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || 'Failed to load user profile';
+    toastError.error('Failed to load profile', errorMessage);
+    throw error;
+  }
 };

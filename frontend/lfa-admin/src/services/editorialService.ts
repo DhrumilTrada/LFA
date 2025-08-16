@@ -1,17 +1,7 @@
-import axios from 'axios';
+import { axiosInstance } from './tokenService';
+import { toastSuccess, toastError } from './toastService';
 
 const API_URL = 'editorials';
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-
-const getAuthHeaders = () => {
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('token');
-    if (token) {
-      return { Authorization: `Bearer ${token}` } as Record<string, string>;
-    }
-  }
-  return {};
-};
 
 export interface EditorialInput {
   title: string;
@@ -55,106 +45,132 @@ export interface EditorialQueryParams {
 
 export const editorialService = {
   async getEditorials(params: EditorialQueryParams = {}) {
-    const queryParams = new URLSearchParams();
-    
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        queryParams.append(key, value.toString());
-      }
-    });
+    try {
+      const queryParams = new URLSearchParams();
+      
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          queryParams.append(key, value.toString());
+        }
+      });
 
-    const response = await axios.get(`${API_BASE_URL}/${API_URL}?${queryParams.toString()}`, {
-      headers: getAuthHeaders(),
-    });
-    return response.data;
+      const response = await axiosInstance.get(`/${API_URL}?${queryParams.toString()}`);
+      return response.data;
+    } catch (error: any) {
+      toastError.editorialFetchError();
+      throw error;
+    }
   },
 
   async createEditorial(data: EditorialInput) {
-    const formData = new FormData();
-    
-    // Append all text fields
-    formData.append('title', data.title);
-    formData.append('category', data.category);
-    formData.append('status', data.status);
-    formData.append('content', data.content);
-    
-    if (data.excerpt) {
-      formData.append('excerpt', data.excerpt);
-    }
-    
-    if (data.tags && data.tags.length > 0) {
-      data.tags.forEach(tag => formData.append('tags[]', tag));
-    }
-    
-    if (data.featured !== undefined) {
-      formData.append('featured', data.featured.toString());
-    }
+    try {
+      const formData = new FormData();
+      
+      // Append all text fields
+      formData.append('title', data.title);
+      formData.append('category', data.category);
+      formData.append('status', data.status);
+      formData.append('content', data.content);
+      
+      if (data.excerpt) {
+        formData.append('excerpt', data.excerpt);
+      }
+      
+      if (data.tags && data.tags.length > 0) {
+        data.tags.forEach(tag => formData.append('tags[]', tag));
+      }
+      
+      if (data.featured !== undefined) {
+        formData.append('featured', data.featured.toString());
+      }
 
-    // Append files
-    if (data.image) {
-      formData.append('image', data.image);
-    }
-    
-    if (data.pdf) {
-      formData.append('pdf', data.pdf);
-    }
+      // Append files
+      if (data.image) {
+        formData.append('image', data.image);
+      }
+      
+      if (data.pdf) {
+        formData.append('pdf', data.pdf);
+      }
 
-    const response = await axios.post(`${API_BASE_URL}/${API_URL}`, formData, {
-      headers: {
-        ...getAuthHeaders(),
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
+      const response = await axiosInstance.post(`/${API_URL}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      toastSuccess.editorialCreated();
+      return response.data;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to create editorial';
+      toastError.editorialCreateError(errorMessage);
+      throw error;
+    }
   },
 
   async updateEditorial(id: string, data: Partial<EditorialInput>) {
-    const formData = new FormData();
-    
-    // Append all text fields that are provided
-    if (data.title) formData.append('title', data.title);
-    if (data.category) formData.append('category', data.category);
-    if (data.status) formData.append('status', data.status);
-    if (data.content) formData.append('content', data.content);
-    if (data.excerpt) formData.append('excerpt', data.excerpt);
-    
-    if (data.tags && data.tags.length > 0) {
-      data.tags.forEach(tag => formData.append('tags[]', tag));
-    }
-    
-    if (data.featured !== undefined) {
-      formData.append('featured', data.featured.toString());
-    }
+    try {
+      const formData = new FormData();
+      
+      // Append all text fields that are provided
+      if (data.title) formData.append('title', data.title);
+      if (data.category) formData.append('category', data.category);
+      if (data.status) formData.append('status', data.status);
+      if (data.content) formData.append('content', data.content);
+      if (data.excerpt) formData.append('excerpt', data.excerpt);
+      
+      if (data.tags && data.tags.length > 0) {
+        data.tags.forEach(tag => formData.append('tags[]', tag));
+      }
+      
+      if (data.featured !== undefined) {
+        formData.append('featured', data.featured.toString());
+      }
 
-    // Append files if provided
-    if (data.image) {
-      formData.append('image', data.image);
-    }
-    
-    if (data.pdf) {
-      formData.append('pdf', data.pdf);
-    }
+      // Append files if provided
+      if (data.image) {
+        formData.append('image', data.image);
+      }
+      
+      if (data.pdf) {
+        formData.append('pdf', data.pdf);
+      }
 
-    const response = await axios.patch(`${API_BASE_URL}/${API_URL}/${id}`, formData, {
-      headers: {
-        ...getAuthHeaders(),
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
+      const response = await axiosInstance.patch(`/${API_URL}/${id}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      toastSuccess.editorialUpdated();
+      return response.data;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to update editorial';
+      toastError.editorialUpdateError(errorMessage);
+      throw error;
+    }
   },
 
   async deleteEditorial(id: string) {
-    const response = await axios.delete(`${API_BASE_URL}/${API_URL}/${id}`, {
-      headers: getAuthHeaders(),
-    });
-    return response.data;
+    try {
+      const response = await axiosInstance.delete(`/${API_URL}/${id}`);
+      toastSuccess.editorialDeleted();
+      return response.data;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to delete editorial';
+      toastError.editorialDeleteError(errorMessage);
+      throw error;
+    }
   },
 
   async getEditorialById(id: string) {
-    const response = await axios.get(`${API_BASE_URL}/${API_URL}/${id}`, {
-      headers: getAuthHeaders(),
-    });
-    return response.data;
+    try {
+      const response = await axiosInstance.get(`/${API_URL}/${id}`);
+      return response.data;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to load editorial';
+      toastError.error('Failed to load editorial', errorMessage);
+      throw error;
+    }
   },
 };

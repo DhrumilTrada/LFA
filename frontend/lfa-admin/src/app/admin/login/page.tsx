@@ -54,9 +54,12 @@ function LoginPage() {
       const payload = { username: data.username, password: data.password };
       const resultAction = await dispatch(loginThunk(payload));
       if (loginThunk.fulfilled.match(resultAction)) {
-        const { accessToken } = resultAction?.payload?.data || {};
+        const { accessToken, refreshToken } = resultAction?.payload?.data || {};
         if (accessToken) {
           localStorage.setItem("token", accessToken);
+        }
+        if (refreshToken) {
+          localStorage.setItem("refreshToken", refreshToken);
         }
         router.push("/admin/dashboard");
       } else {

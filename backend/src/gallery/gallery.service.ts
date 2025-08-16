@@ -39,11 +39,15 @@ export class GalleryService {
 
   async update(id: string, updateGalleryDto: UpdateGalleryDto, userId: string) {
     let imageUrl = updateGalleryDto.image;
+    const image = await this.galleryModel.findById(id).exec();
     let size = 0;
     if (updateGalleryDto.image && Buffer.isBuffer(updateGalleryDto.image)) {
       const result = await this.fileService.saveFile(updateGalleryDto.image, 'gallery-image.jpg', 'gallery', 'image/jpeg');
+      const previousImageLocation = image.image;
       imageUrl = result.url;
-      size = result.size;
+      await this.fileService.deleteFile(previousImageLocation);
+      size -= (await this.fileService.getFileSize(previousImageLocation, 'gallery', 'image/jpeg')) || 0;
+      size += result.size;
     }
     return this.galleryModel.findByIdAndUpdate(
       id,
@@ -53,7 +57,9 @@ export class GalleryService {
   }
 
   async remove(id: string) {
-    return this.galleryModel.findByIdAndDelete(id).exec();
+    const gallery = await this.galleryModel.findByIdAndDelete(id).exec();
+    await this.fileService.deleteFile(gallery.image);
+    return gallery;
   }
 
   async getCategories() {

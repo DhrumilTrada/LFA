@@ -100,6 +100,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../../store";
 import { getEditorials, createEditorial, updateEditorial, deleteEditorial } from "../../../../features/editorial/editorialThunks";
 import { Editorial } from "../../../../features/editorial/editorialSlice";
+import { toastSuccess, toastError } from "../../../../services/toastService";
+import { toast } from "sonner";
 
 // Set up PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.mjs";
@@ -171,7 +173,7 @@ type EditFormData = z.infer<typeof editSchema>;
 
 export default function EditorialManagement() {
   const dispatch = useDispatch<AppDispatch>();
-  const { editorials, loading, error } = useSelector((state: RootState) => state.editorial);
+  const { editorials, loading, creating, updating, deleting, error } = useSelector((state: RootState) => state.editorial);
 
   const [searchTitle, setSearchTitle] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -223,6 +225,13 @@ export default function EditorialManagement() {
   useEffect(() => {
     setFilteredEditorials(editorials);
   }, [editorials]);
+
+  // Handle errors from Redux state
+  useEffect(() => {
+    if (error) {
+      toastError.error("Operation failed", error);
+    }
+  }, [error]);
 
   // Calculate statistics
   const stats = {
@@ -344,24 +353,27 @@ export default function EditorialManagement() {
 
   // Handle upload save
   const handleUploadSave = async (data: UploadFormData) => {
-    const editorialData = {
-      title: data.title,
-      category: data.category,
-      status: data.status,
-      excerpt: data.excerpt || "",
-      content: data.content,
-      tags: data.tags || [],
-      featured: data.featured || false,
-      image: data.image,
-      pdf: data.pdf,
-    };
+    try {
+      const editorialData = {
+        title: data.title,
+        category: data.category,
+        status: data.status,
+        excerpt: data.excerpt || "",
+        content: data.content,
+        tags: data.tags || [],
+        featured: data.featured || false,
+        image: data.image,
+        pdf: data.pdf,
+      };
 
-    const result = await dispatch(createEditorial(editorialData));
-    if (createEditorial.fulfilled.match(result)) {
-      uploadForm.reset();
-      setIsUploadOpen(false);
-      // Refresh editorials after successful creation
-      dispatch(getEditorials({}));
+      const result = await dispatch(createEditorial(editorialData));
+
+      if (createEditorial.fulfilled.match(result)) {
+        uploadForm.reset();
+        setIsUploadOpen(false);
+      }
+    } catch (error) {
+    // Error handling is done in the service layer
     }
   };
 
@@ -391,35 +403,37 @@ export default function EditorialManagement() {
   const handleEditSave = async (data: EditFormData) => {
     if (!editingEditorial) return;
 
-    const updateData: any = {
-      title: data.title,
-      category: data.category,
-      status: data.status,
-      excerpt: data.excerpt,
-      content: data.content,
-      tags: data.tags,
-      featured: data.featured,
-    };
+    try {
+      const updateData: any = {
+        title: data.title,
+        category: data.category,
+        status: data.status,
+        excerpt: data.excerpt,
+        content: data.content,
+        tags: data.tags,
+        featured: data.featured,
+      };
 
-    if (data.image) {
-      updateData.image = data.image;
-    }
-    if (data.pdf) {
-      updateData.pdf = data.pdf;
-    }
+      if (data.image) {
+        updateData.image = data.image;
+      }
+      if (data.pdf) {
+        updateData.pdf = data.pdf;
+      }
 
-    const result = await dispatch(updateEditorial({
-      id: editingEditorial._id || editingEditorial.id || "",
-      data: updateData
-    }));
+      const result = await dispatch(updateEditorial({
+        id: editingEditorial._id || editingEditorial.id || "",
+        data: updateData
+      }));
 
-    if (updateEditorial.fulfilled.match(result)) {
-      editForm.reset();
-      setEditingEditorial(null);
-      setEditCoverPreview(null);
-      setIsEditOpen(false);
-      // Refresh editorials after successful update
-      dispatch(getEditorials({}));
+      if (updateEditorial.fulfilled.match(result)) {
+        editForm.reset();
+        setEditingEditorial(null);
+        setEditCoverPreview(null);
+        setIsEditOpen(false);
+      }
+    } catch (error) {
+    // Error handling is done in the service layer
     }
   };
 
@@ -433,11 +447,14 @@ export default function EditorialManagement() {
 
   // Handle delete
   const handleDelete = async (id: string) => {
-    const result = await dispatch(deleteEditorial(id));
-    if (deleteEditorial.fulfilled.match(result)) {
-      setDeleteEditorialId(null);
-      // Refresh editorials after successful deletion
-      dispatch(getEditorials({}));
+    try {
+      const result = await dispatch(deleteEditorial(id));
+
+      if (deleteEditorial.fulfilled.match(result)) {
+        setDeleteEditorialId(null);
+      }
+    } catch (error) {
+    // Error handling is done in the service layer
     }
   };
 
@@ -702,9 +719,9 @@ export default function EditorialManagement() {
           <Button
             type="submit"
             className="flex-1 bg-blue-600 hover:bg-blue-700"
-            disabled={loading}
+            disabled={creating}
           >
-            {loading ? "Uploading..." : "Upload Editorial"}
+            {creating ? "Uploading..." : "Upload Editorial"}
           </Button>
           <Button
             type="button"
@@ -912,9 +929,9 @@ export default function EditorialManagement() {
           <Button
             type="submit"
             className="flex-1 bg-blue-600 hover:bg-blue-700"
-            disabled={loading}
+            disabled={updating}
           >
-            {loading ? "Updating..." : "Update Editorial"}
+            {updating ? "Updating..." : "Update Editorial"}
           </Button>
           <Button
             type="button"

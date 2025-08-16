@@ -1,18 +1,7 @@
-import axios from 'axios';
+import { axiosInstance } from './tokenService';
+import { toastSuccess, toastError } from './toastService';
 
 const API_URL = 'users';
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-
-// Helper to get auth headers
-const getAuthHeaders = () => {
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('token');
-    if (token) {
-      return { Authorization: `Bearer ${token}` };
-    }
-  }
-  return {};
-};
 
 export interface UserInput {
   name: string;
@@ -37,31 +26,48 @@ export interface UserResponse {
 }
 
 const getUsers = async (): Promise<UserResponse[]> => {
-  const response = await axios.get(`${API_BASE_URL}/${API_URL}`, {
-    headers: getAuthHeaders(),
-  });
-  return response.data;
+  try {
+    const response = await axiosInstance.get(`/${API_URL}`);
+    return response.data;
+  } catch (error: any) {
+    toastError.userFetchError();
+    throw error;
+  }
 };
 
 const createUser = async (data: UserInput): Promise<UserResponse> => {
-  const response = await axios.post(`${API_BASE_URL}/${API_URL}`, data, {
-    headers: getAuthHeaders(),
-  });
-  return response.data;
+  try {
+    const response = await axiosInstance.post(`/${API_URL}`, data);
+    toastSuccess.userCreated();
+    return response.data;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || 'Failed to create user';
+    toastError.userCreateError(errorMessage);
+    throw error;
+  }
 };
 
 const deleteUser = async (userId: string): Promise<void> => {
-  await axios.delete(`${API_BASE_URL}/${API_URL}/${userId}`, {
-    headers: getAuthHeaders(),
-  });
+  try {
+    await axiosInstance.delete(`/${API_URL}/${userId}`);
+    toastSuccess.userDeleted();
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || 'Failed to delete user';
+    toastError.userDeleteError(errorMessage);
+    throw error;
+  }
 };
 
-
 const updateUser = async (userId: string, data: Partial<UserInput>): Promise<UserResponse> => {
-  const response = await axios.patch(`${API_BASE_URL}/${API_URL}/${userId}`, data, {
-    headers: getAuthHeaders(),
-  });
-  return response.data;
+  try {
+    const response = await axiosInstance.patch(`/${API_URL}/${userId}`, data);
+    toastSuccess.userUpdated();
+    return response.data;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || 'Failed to update user';
+    toastError.userUpdateError(errorMessage);
+    throw error;
+  }
 };
 
 const userService = {

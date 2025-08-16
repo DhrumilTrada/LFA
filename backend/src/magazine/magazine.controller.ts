@@ -54,8 +54,8 @@ export class MagazineController {
   }
 
   @ApiOperation({ summary: 'Get a list of magazines' })
-  // @UseGuards(JwtAuthGuard)
-  // @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @Get()
   findAll(@Query() query: MagazinePaginationQuery) {
     return this.magazineService.findAll(query);

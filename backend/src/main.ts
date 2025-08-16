@@ -21,6 +21,8 @@ async function bootstrap() {
   const appConfig = app.get(AppConfig);
   const loggingConfig = app.get(LoggingConfig);
 
+  app.set('query parser', 'extended');
+
   // enable cors
   app.enableCors({
     origin: [

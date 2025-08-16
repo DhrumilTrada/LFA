@@ -22,6 +22,9 @@ export interface Magazine {
 interface MagazineState {
   magazines: Magazine[];
   loading: boolean;
+  creating: boolean;
+  updating: boolean;
+  deleting: boolean;
   error: string | null;
   message: string | null;
 }
@@ -29,6 +32,9 @@ interface MagazineState {
 const initialState: MagazineState = {
   magazines: [],
   loading: false,
+  creating: false,
+  updating: false,
+  deleting: false,
   error: null,
   message: null,
 };
@@ -65,17 +71,53 @@ const magazineSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
+      .addCase(createMagazine.pending, (state) => {
+        state.creating = true;
+        state.error = null;
+      })
       .addCase(createMagazine.fulfilled, (state, action: PayloadAction<MagazineResponse>) => {
+        state.creating = false;
         state.magazines.unshift(action.payload.data);
         state.message = action.payload.message;
       })
+      .addCase(createMagazine.rejected, (state, action) => {
+        state.creating = false;
+        state.error = action.payload as string;
+      })
+      .addCase(updateMagazine.pending, (state) => {
+        state.updating = true;
+        state.error = null;
+      })
       .addCase(updateMagazine.fulfilled, (state, action: PayloadAction<MagazineResponse>) => {
-        const idx = state.magazines.findIndex(m => m._id === action.payload.data._id || m.id === action.payload.data.id);
-        if (idx !== -1) state.magazines[idx] = action.payload.data;
+        state.updating = false;
+        const updatedMagazine = action.payload.data;
+        const idx = state.magazines.findIndex(m => 
+          (m._id && updatedMagazine._id && m._id === updatedMagazine._id) || 
+          (m.id && updatedMagazine.id && m.id === updatedMagazine.id)
+        );
+        if (idx !== -1) {
+          state.magazines[idx] = updatedMagazine;
+        }
         state.message = action.payload.message;
       })
+      .addCase(updateMagazine.rejected, (state, action) => {
+        state.updating = false;
+        state.error = action.payload as string;
+      })
+      .addCase(deleteMagazine.pending, (state) => {
+        state.deleting = true;
+        state.error = null;
+      })
       .addCase(deleteMagazine.fulfilled, (state, action: PayloadAction<string>) => {
-        state.magazines = state.magazines.filter(m => m._id !== action.payload && m.id !== action.payload);
+        state.deleting = false;
+        const deletedId = action.payload;
+        state.magazines = state.magazines.filter(m => 
+          (m._id !== deletedId) && (m.id !== deletedId)
+        );
+      })
+      .addCase(deleteMagazine.rejected, (state, action) => {
+        state.deleting = false;
+        state.error = action.payload as string;
       });
   },
 });

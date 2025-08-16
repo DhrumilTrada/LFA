@@ -39,7 +39,7 @@ export class GalleryController {
   async create(
     @UploadedFiles() files: { image?: MulterFile[] },
     @Body() createGalleryDto: CreateGalleryDto,
-    @UserId() userId: string, // Assumes you have a @UserId() decorator
+    @UserId() userId: string,
   ) {
     if (files.image?.[0]) {
       createGalleryDto.image = files.image[0].buffer;

@@ -3,6 +3,8 @@ import { useState, useCallback, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch } from "@/app/store";
 import { createUser, deleteUser, getUsers, updateUser } from "@/features/user/userThunks";
+import { toastError } from "@/services/toastService";
+import { toast } from "sonner";
 import { RootState } from "@/app/store";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -217,10 +219,17 @@ export default function UserManagement() {
   };
 
   const handleDelete = async (id: string) => {
-    await dispatch(deleteUser(id));
-    await refreshUsers();
-    setDeleteUserId(null);
-  }
+    try {
+      const result = await dispatch(deleteUser(id));
+
+      if (deleteUser.fulfilled.match(result)) {
+        await refreshUsers();
+        setDeleteUserId(null);
+      }
+    } catch (error) {
+      // Error handling is done in the service layer
+    }
+  };
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
@@ -257,6 +266,13 @@ export default function UserManagement() {
       setIsLoading(false);
     });
   }, [dispatch]);
+
+  // Handle errors from Redux state
+  useEffect(() => {
+    if (userState.error) {
+      toastError.error("Operation failed", userState.error);
+    }
+  }, [userState.error]);
 
   // Calculate statistics
   const stats = {
@@ -355,16 +371,25 @@ export default function UserManagement() {
   // Handle edit save
   const handleEditSave = async (data: EditUserFormData) => {
     if (!editingUser) return;
-    const updateData = {
-      name: data.name,
-      email: data.email,
-      role: data.role,
-      isActive: data.status,
-    };
-    await dispatch(updateUser({ userId: String(editingUser.id), data: updateData }));
-    await refreshUsers();
-    setIsEditOpen(false);
-    setEditingUser(null);
+
+    try {
+      const updateData = {
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        isActive: data.status,
+      };
+
+      const result = await dispatch(updateUser({ userId: String(editingUser.id), data: updateData }));
+
+      if (updateUser.fulfilled.match(result)) {
+        await refreshUsers();
+        setIsEditOpen(false);
+        setEditingUser(null);
+      }
+    } catch (error) {
+      // Error handling is done in the service layer
+    }
   };
 
   // Icon for user role

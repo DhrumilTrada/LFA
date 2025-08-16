@@ -104,6 +104,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/app/store";
 import { getMagazines, createMagazine, updateMagazine, deleteMagazine } from "@/features/magazine/magazineThunks";
 import { Magazine } from "@/features/magazine/magazineSlice";
+import { toastSuccess, toastError, dismissAllToasts } from "@/services/toastService";
+import { toast } from "sonner";
 
 // Set up PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.mjs";
@@ -174,7 +176,7 @@ type EditFormData = z.infer<typeof editSchema>;
 
 export default function MagazineManagement() {
   const dispatch = useDispatch<AppDispatch>();
-  const { magazines, loading, error } = useSelector((state: RootState) => state.magazine);
+  const { magazines, loading, creating, updating, deleting, error } = useSelector((state: RootState) => state.magazine);
 
   const [searchTitle, setSearchTitle] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All");
@@ -223,6 +225,13 @@ export default function MagazineManagement() {
   useEffect(() => {
     setFilteredMagazines(magazines);
   }, [magazines]);
+
+  // Handle errors from Redux state
+  useEffect(() => {
+    if (error) {
+      toastError.error("Operation failed", error);
+    }
+  }, [error]);
 
   // Calculate statistics
   const stats = {
@@ -339,24 +348,27 @@ export default function MagazineManagement() {
 
   // Handle upload save
   const handleUploadSave = async (data: UploadFormData) => {
-    const magazineData = {
-      title: data.title,
-      issueNumber: data.issueNumber,
-      editor: data.editor,
-      status: data.status,
-      description: data.description || "",
-      year: data.year,
-      image: data.image,
-      pdf: data.pdf,
-      uploadedAt: new Date().toISOString(),
-    };
+    try {
+      const magazineData = {
+        title: data.title,
+        issueNumber: data.issueNumber,
+        editor: data.editor,
+        status: data.status,
+        description: data.description || "",
+        year: data.year,
+        image: data.image,
+        pdf: data.pdf,
+        uploadedAt: new Date().toISOString(),
+      };
 
-    const result = await dispatch(createMagazine(magazineData));
-    if (createMagazine.fulfilled.match(result)) {
-      uploadForm.reset();
-      setIsUploadOpen(false);
-      // Refresh magazines after successful creation
-      dispatch(getMagazines({}));
+      const result = await dispatch(createMagazine(magazineData));
+
+      if (createMagazine.fulfilled.match(result)) {
+        uploadForm.reset();
+        setIsUploadOpen(false);
+      }
+    } catch (error) {
+    // Error handling is done in the service layer
     }
   };
 
@@ -385,34 +397,36 @@ export default function MagazineManagement() {
   const handleEditSave = async (data: EditFormData) => {
     if (!editingMagazine) return;
 
-    const updateData: any = {
-      title: data.title,
-      issueNumber: data.issueNumber,
-      editor: data.editor,
-      status: data.status,
-      description: data.description,
-      year: data.year,
-    };
+    try {
+      const updateData: any = {
+        title: data.title,
+        issueNumber: data.issueNumber,
+        editor: data.editor,
+        status: data.status,
+        description: data.description,
+        year: data.year,
+      };
 
-    if (data.image) {
-      updateData.image = data.image;
-    }
-    if (data.pdf) {
-      updateData.pdf = data.pdf;
-    }
+      if (data.image) {
+        updateData.image = data.image;
+      }
+      if (data.pdf) {
+        updateData.pdf = data.pdf;
+      }
 
-    const result = await dispatch(updateMagazine({
-      id: editingMagazine._id || editingMagazine.id || "",
-      data: updateData
-    }));
+      const result = await dispatch(updateMagazine({
+        id: editingMagazine._id || editingMagazine.id || "",
+        data: updateData
+      }));
 
-    if (updateMagazine.fulfilled.match(result)) {
-      editForm.reset();
-      setEditingMagazine(null);
-      setEditImagePreview(null);
-      setIsEditOpen(false);
-      // Refresh magazines after successful update
-      dispatch(getMagazines({}));
+      if (updateMagazine.fulfilled.match(result)) {
+        editForm.reset();
+        setEditingMagazine(null);
+        setEditImagePreview(null);
+        setIsEditOpen(false);
+      }
+    } catch (error) {
+    // Error handling is done in the service layer
     }
   };
 
@@ -431,11 +445,14 @@ export default function MagazineManagement() {
 
   // Handle delete
   const handleDelete = async (id: string) => {
-    const result = await dispatch(deleteMagazine(id));
-    if (deleteMagazine.fulfilled.match(result)) {
-      setDeleteMagazineId(null);
-      // Refresh magazines after successful deletion
-      dispatch(getMagazines({}));
+    try {
+      const result = await dispatch(deleteMagazine(id));
+
+      if (deleteMagazine.fulfilled.match(result)) {
+        setDeleteMagazineId(null);
+      }
+    } catch (error) {
+    // Error handling is done in the service layer
     }
   };
 
@@ -701,9 +718,9 @@ export default function MagazineManagement() {
           <Button
             type="submit"
             className="flex-1 bg-blue-600 hover:bg-blue-700"
-            disabled={loading}
+            disabled={creating}
           >
-            {loading ? "Uploading..." : "Upload Magazine"}
+            {creating ? "Uploading..." : "Upload Magazine"}
           </Button>
           <Button
             type="button"
@@ -922,9 +939,9 @@ export default function MagazineManagement() {
           <Button
             type="submit"
             className="flex-1 bg-blue-600 hover:bg-blue-700"
-            disabled={loading}
+            disabled={updating}
           >
-            {loading ? "Updating..." : "Update Magazine"}
+            {updating ? "Updating..." : "Update Magazine"}
           </Button>
           <Button
             type="button"
